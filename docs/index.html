@@ -317,6 +317,82 @@ noscript img { display:block; width:100%; height:auto; }
   *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important;
     transition-duration:.001ms !important; }
 }
+
+/* ================= PROTOTYPE — hero CTA variants ==========================
+   Throwaway, branch prototype/hero-cta. Question: what should the hero's
+   copy-the-prompt block look like? Switched by ?variant=A|B|C|D; A is today's
+   design. Everything here is prefixed .p- and goes away once one wins.
+   ========================================================================= */
+.cta { display:none; }
+.cta[data-variant="A"] { display:block; }        /* the no-JS default */
+html[data-variant] .cta { display:none; }
+html[data-variant="A"] .cta[data-variant="A"],
+html[data-variant="B"] .cta[data-variant="B"],
+html[data-variant="C"] .cta[data-variant="C"],
+html[data-variant="D"] .cta[data-variant="D"] { display:block; }
+
+/* --- B: the composer box --- */
+.p-composer { display:block; width:100%; max-width:var(--measure); padding:0; text-align:left;
+  font:inherit; color:inherit; cursor:pointer; background:var(--sunk);
+  border:1px solid var(--line); border-left:2px solid var(--brand); border-radius:10px;
+  overflow:hidden;
+  transition:border-color .18s ease, background-color .18s ease; }
+.p-composer:hover { border-color:color-mix(in srgb, var(--brand) 55%, transparent);
+  border-left-color:var(--brand);
+  background:color-mix(in srgb, var(--brand) 4%, var(--sunk)); }
+.p-composer.copied { border-color:var(--brand); }
+.p-bar { display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:12px 16px; border-bottom:1px solid var(--hair); background:#131313; }
+.p-tag { color:#9d9d9d; font-size:12px; }
+.p-act { display:inline-flex; align-items:center; gap:8px; color:var(--brand);
+  font-size:12px; font-weight:600; }
+.p-act svg { width:13px; height:13px; fill:currentColor; flex:0 0 auto; }
+.p-body { display:flex; gap:12px; padding:16px 18px 18px; }
+.p-body .chev { color:var(--brand); line-height:1.85; }
+.p-body .txt { color:#c9c9c9; font-size:13px; line-height:1.85; }
+.p-body .txt em { font-style:normal; color:#ededed; }
+.p-under { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top:14px;
+  color:var(--faint); font-size:12.5px; }
+.p-under a { text-decoration:none; border-bottom:1px solid #333; padding-bottom:1px; }
+.p-under a:hover { color:var(--brand); border-bottom-color:var(--brand); }
+
+/* --- C: the two lanes --- */
+.p-lanes { display:grid; grid-template-columns:1fr 1fr; max-width:var(--measure);
+  border-top:1px solid var(--hair); }
+.p-lane { padding:20px 26px 2px 0; }
+.p-lane + .p-lane { border-left:1px solid var(--hair); padding:20px 0 2px 26px; }
+.p-lane b { display:block; font-size:13.5px; font-weight:600; color:#ededed; margin-bottom:6px; }
+.p-lane .sub2 { display:block; color:var(--faint); font-size:12px; line-height:1.7;
+  margin-bottom:16px; max-width:34ch; }
+.p-lane .note2 { margin:12px 0 0; color:var(--faint); font-size:12px; line-height:1.7; }
+
+/* --- D: the prompt as display type --- */
+.p-quote { max-width:68ch; margin:0 0 22px; padding:2px 0 2px 18px;
+  border-left:2px solid color-mix(in srgb, var(--brand) 60%, transparent); }
+.p-qline { margin:0; font-size:clamp(15px,1.7vw,19px); line-height:1.55; color:#ededed;
+  letter-spacing:-.012em; }
+.p-qline i { color:var(--brand); font-style:normal; margin-right:.55em; }
+.p-qrest { margin:12px 0 0; max-width:56ch; color:var(--faint); font-size:12.5px; line-height:1.8; }
+.p-hint { align-self:center; color:var(--faint); font-size:12.5px; }
+
+@media (max-width:720px) {
+  .p-lanes { grid-template-columns:minmax(0,1fr); }
+  .p-lane { padding:20px 0 2px; }
+  .p-lane + .p-lane { border-left:0; border-top:1px solid var(--hair); padding:20px 0 2px; }
+}
+
+/* the switcher — deliberately not in the page's palette, so it never reads as
+   part of the design being judged */
+.p-switch { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:60;
+  display:flex; align-items:center; gap:2px; padding:4px; border-radius:99px;
+  background:#f4f4f4; color:#141414; font-family:var(--mono); font-size:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.6); }
+.p-switch[hidden] { display:none; }
+.p-switch button { width:26px; height:26px; padding:0; border:0; border-radius:99px;
+  cursor:pointer; background:transparent; color:#141414; font-family:inherit; font-size:13px; }
+.p-switch button:hover { background:#dcdcdc; }
+.p-switch .lbl { padding:0 10px; white-space:nowrap; }
+.p-switch .tag { margin-right:8px; font-weight:700; color:#a04a24; }
 </style>
 <!-- everything that only makes sense once the ticker and the scroll observer are
      running hangs off this class, so the page degrades to a readable still -->
@@ -372,10 +448,71 @@ noscript img { display:block; width:100%; height:auto; }
           <p class="sub">One bash script. It shows your folder and branch, the model, how full the
             context window is, and how much of your 5-hour, 7-day and Fable limits you have used —
             as bars, under the prompt, while you work.</p>
+          <!-- PROTOTYPE (branch prototype/hero-cta) — four CTAs on this one hero,
+               switched by ?variant=. A is today's design, kept as the baseline.
+               Only the winner survives; the rest goes back to the branch. -->
+          <div class="cta" data-variant="A">
           <div class="btnrow">
             <button class="btn solid" data-copy="Install the statusline from https://github.com/alp82/claude-statusline for me.&#10;Run: curl -fsSL https://alp82.github.io/claude-statusline/install.sh | bash&#10;Then check that bash, jq and curl are present, confirm ~/.claude/settings.json&#10;points statusLine at ~/.claude/statusline.sh, and tell me what to do next."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy the prompt</button>
             <span class="oneliner"><i>&gt;</i> Install the statusline from github.com/alp82/claude-statusline for me…</span>
             <a class="btn icon" href="https://github.com/alp82/claude-statusline" title="View on GitHub" aria-label="View on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.93-.89-1.18-.89-1.18-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.01.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.11.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg></a>
+          </div>
+          </div>
+
+          <!-- B — the prompt itself is the button: a Claude Code composer box you
+               click. Nothing is hidden behind an ellipsis. -->
+          <div class="cta" data-variant="B">
+            <button class="p-composer" data-pcopy>
+              <span class="p-bar">
+                <span class="p-tag">the prompt for Claude Code</span>
+                <span class="p-act" data-pcopy-label><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>click to copy</span>
+              </span>
+              <span class="p-body">
+                <span class="chev">&gt;</span>
+                <span class="txt">Install the statusline from <em>github.com/alp82/claude-statusline</em> for me.<br>
+                  Run: <em>curl -fsSL https://alp82.github.io/claude-statusline/install.sh | bash</em><br>
+                  Then check that bash, jq and curl are present, confirm <em>~/.claude/settings.json</em><br>
+                  points statusLine at <em>~/.claude/statusline.sh</em>, and tell me what to do next.</span>
+              </span>
+            </button>
+            <div class="p-under">
+              <span>Paste it into Claude Code and press return.</span>
+              <a href="#install">Install it by hand</a>
+              <a href="https://github.com/alp82/claude-statusline">GitHub ↗</a>
+            </div>
+          </div>
+
+          <!-- C — the two ways in, side by side, instead of one primary and one
+               truncated preview. -->
+          <div class="cta" data-variant="C">
+            <div class="p-lanes">
+              <div class="p-lane">
+                <b>Let Claude install it</b>
+                <span class="sub2">One prompt. It runs the installer, then checks the result.</span>
+                <button class="btn solid" data-pcopy><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy the prompt</button>
+                <p class="note2">Paste it into Claude Code and press return.</p>
+              </div>
+              <div class="p-lane">
+                <b>Install it yourself</b>
+                <span class="sub2">One line in your shell. It writes the settings for you.</span>
+                <button class="btn" data-pcopy="curl"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy the one-liner</button>
+                <p class="note2">curl -fsSL …/install.sh | bash</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- D — no chrome at all: the prompt is set as display type, hung off a
+               brand rule, and the button sits under it. -->
+          <div class="cta" data-variant="D">
+            <div class="p-quote">
+              <p class="p-qline"><i>&gt;</i>Install the statusline from github.com/alp82/claude-statusline for me.</p>
+              <p class="p-qrest">…and three more lines that run the installer, check bash, jq and curl,
+                and confirm your settings point at the script.</p>
+            </div>
+            <div class="btnrow">
+              <button class="btn solid" data-pcopy><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy all four lines</button>
+              <span class="p-hint">then paste it into Claude Code</span>
+            </div>
           </div>
         </header>
 
@@ -794,6 +931,57 @@ if (REDUCED) {
   paint(STILL);              // paint once so the line is there on first frame
   requestAnimationFrame(tick);
 }
+</script>
+
+<!-- PROTOTYPE (branch prototype/hero-cta) — the variant switcher. ← / → cycle. -->
+<div class="p-switch" hidden>
+  <button data-pnav="-1" title="previous variant" aria-label="previous variant">←</button>
+  <span class="lbl"></span>
+  <button data-pnav="1" title="next variant" aria-label="next variant">→</button>
+</div>
+<script>
+/* ---- PROTOTYPE: hero CTA variant switcher (branch prototype/hero-cta) -----
+   The bar only appears with ?variant= in the URL or on localhost, so the
+   published page keeps rendering variant A with nothing extra on it. */
+const VARIANTS = [['A','current row'], ['B','composer box'], ['C','two lanes'],
+                  ['D','prompt as display']];
+const PROMPT = document.querySelector('.cta[data-variant="A"] [data-copy]').dataset.copy;
+const CURL = 'curl -fsSL https://alp82.github.io/claude-statusline/install.sh | bash';
+const pq = new URLSearchParams(location.search);
+const SHOW = pq.has('variant') || location.protocol === 'file:' ||
+  /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+const sw = document.querySelector('.p-switch');
+let vi = Math.max(0, VARIANTS.findIndex(v => v[0] === (pq.get('variant') || 'A').toUpperCase()));
+
+const setVariant = i => {
+  vi = (i + VARIANTS.length) % VARIANTS.length;
+  const [key, name] = VARIANTS[vi];
+  document.documentElement.dataset.variant = key;
+  sw.querySelector('.lbl').innerHTML = `<span class="tag">${key}</span>${name}`;
+  if (!SHOW) return;
+  const u = new URL(location.href);
+  u.searchParams.set('variant', key);
+  history.replaceState(null, '', u);
+};
+setVariant(vi);
+sw.hidden = !SHOW;
+sw.querySelectorAll('[data-pnav]').forEach(b =>
+  b.addEventListener('click', () => setVariant(vi + +b.dataset.pnav)));
+addEventListener('keydown', e => {
+  if (!SHOW) return;
+  const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+  if (!d || (e.target.closest && e.target.closest('input,textarea,[contenteditable],[role="tab"]'))) return;
+  setVariant(vi + d);
+});
+
+document.querySelectorAll('[data-pcopy]').forEach(el => el.addEventListener('click', () => {
+  navigator.clipboard?.writeText(el.dataset.pcopy === 'curl' ? CURL : PROMPT);
+  el.classList.add('copied');
+  const slot = el.querySelector('[data-pcopy-label]') || el;
+  const was = slot.innerHTML;
+  slot.textContent = 'copied';
+  setTimeout(() => { slot.innerHTML = was; el.classList.remove('copied'); }, 1300);
+}));
 </script>
 </body>
 </html>

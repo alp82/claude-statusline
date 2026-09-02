@@ -5,6 +5,19 @@
 #   ★ Model · effort │ Ctx ▓▓░ 9% 90k │ 5h ▓░░ 4% ↻2h │ 7d ▓▓░ 16% ↻3d10h
 # Reads the statusline JSON from stdin (see https://code.claude.com/docs/en/statusline.md)
 
+# --- settings. ~/.statuslinerc is sourced, so it is plain shell: one
+# assignment per line and `#` comments, nothing to parse. Point $STATUSLINE_RC
+# at another path to read another file. A variable already set in the
+# environment wins over the file, so `COMPACT= claude` is a one-off override.
+STATUSLINE_RC=${STATUSLINE_RC:-$HOME/.statuslinerc}
+if [[ -r $STATUSLINE_RC ]]; then
+  rc_env=$(declare -p COMPACT STATUSLINE_LOC_MAX CLAUDE_STATUSLINE_NO_KEYCHAIN 2>/dev/null)
+  # shellcheck source=/dev/null
+  source "$STATUSLINE_RC"
+  [[ -n $rc_env ]] && eval "$rc_env"
+  unset rc_env
+fi
+
 input=$(cat)
 
 # Tab is an IFS whitespace character, so bash collapses a run of tabs: one
@@ -170,6 +183,55 @@ stacked_bar() {
     out+="\033[${fg};${bg}m▀"
   done
   printf '%b\033[0m' "$out"
+}
+
+# vglyph <pct> — one block glyph whose height is the percentage, in eighths.
+# ▁ is the floor so 0% still shows a base.
+vglyph() {
+  local pct=$1 g=("▁" "▁" "▂" "▃" "▄" "▅" "▆" "▇" "█")
+  (( pct < 0 )) && pct=0; (( pct > 100 )) && pct=100
+  printf '%s' "${g[$(( (pct * 8 + 50) / 100 ))]}"
+}
+
+# vert_meter <used_pct> <time_pct> — the stacked bar folded into two columns:
+# usage glyph (pace-colored, like stacked_bar) beside a blue time glyph, both
+# on the dark track.
+vert_meter() {
+  printf '\033[%s;%sm%s\033[38;2;80;130;220;%sm%s\033[0m' \
+    "$(pace_color "$1" "$2")" "$TRACK" "$(vglyph "$1")" "$TRACK" "$(vglyph "$2")"
+}
+
+# COMPACT — which gauges are drawn as the vertical meter instead of a 10-cell
+# bar, as a comma-separated list of segment ids: ctx, 5h, 7d, fable. Empty
+# means none, and every gauge is a bar. Set it in ~/.statuslinerc. The default
+# is `fable`: that window is secondary, so it gets a glance and the three
+# primary gauges keep their track.
+COMPACT=${COMPACT-fable}
+is_compact() { [[ ",${COMPACT// /}," == *",$1,"* ]]; }
+
+# meter <id> <used_pct> <time_pct> [color_fn] — the gauge for one segment,
+# compact or not, as COMPACT says. A <time_pct> of -1 means the window has no
+# reset time to plot: there is no blue half, so the compact form is a single
+# column and the full one a plain bar.
+meter() {
+  local id=$1 pct=$2 elapsed=$3 color_fn=${4:-pct_color}
+  if is_compact "$id"; then
+    if (( elapsed >= 0 )); then
+      vert_meter "$pct" "$elapsed"
+    else
+      printf '\033[%s;%sm%s\033[0m' "$($color_fn "$pct")" "$TRACK" "$(vglyph "$pct")"
+    fi
+  elif (( elapsed >= 0 )); then
+    stacked_bar "$pct" "$elapsed" 10
+  else
+    bar "$pct" 10 "$color_fn"
+  fi
+}
+
+# elapsed_pct <resets_at_epoch> <window_seconds> — how far into the window we are
+elapsed_pct() {
+  local remaining=$(( $1 - $(date +%s) ))
+  echo $(( ( $2 - remaining ) * 100 / $2 ))
 }
 
 # fmt_tokens <count> — context tokens, always in thousands: 1k … 999k. A live
@@ -453,67 +515,34 @@ eff=$(effort_label "$effort")
 row2+=("$seg")
 
 if (( ctx_pct >= 0 )); then
-  seg="${DIM}Ctx${RESET} $(bar "$ctx_pct" 10 ctx_color)"
+  seg="${DIM}Ctx${RESET} $(meter ctx "$ctx_pct" -1 ctx_color)"
   seg+=" \033[$(ctx_color "$ctx_pct")m${ctx_pct}%${RESET}"
   (( ctx_tokens > 0 )) && seg+=" ${DIM}$(fmt_tokens "$ctx_tokens")${RESET}"
   row2+=("$seg")
 fi
 
-
-# vglyph <pct> — one block glyph whose height is the percentage, in eighths.
-# ▁ is the floor so 0% still shows a base.
-vglyph() {
-  local pct=$1 g=("▁" "▁" "▂" "▃" "▄" "▅" "▆" "▇" "█")
-  (( pct < 0 )) && pct=0; (( pct > 100 )) && pct=100
-  printf '%s' "${g[$(( (pct * 8 + 50) / 100 ))]}"
-}
-
-# vert_meter <used_pct> <time_pct> — the stacked bar folded into two columns:
-# usage glyph (pace-colored, like stacked_bar) beside a blue time glyph, both
-# on the dark track.
-vert_meter() {
-  printf '\033[%s;%sm%s\033[38;2;80;130;220;%sm%s\033[0m' \
-    "$(pace_color "$1" "$2")" "$TRACK" "$(vglyph "$1")" "$TRACK" "$(vglyph "$2")"
-}
-# elapsed_pct <resets_at_epoch> <window_seconds> — how far into the window we are
-elapsed_pct() {
-  local remaining=$(( $1 - $(date +%s) ))
-  echo $(( ( $2 - remaining ) * 100 / $2 ))
-}
-
 if (( five_pct >= 0 )); then
-  seg="${DIM}5h${RESET} "
-  if (( five_reset > 0 )); then
-    seg+="$(stacked_bar "$five_pct" "$(elapsed_pct "$five_reset" 18000)" 10)"
-  else
-    seg+="$(bar "$five_pct" 10)"
-  fi
+  five_el=-1
+  (( five_reset > 0 )) && five_el=$(elapsed_pct "$five_reset" 18000)
+  seg="${DIM}5h${RESET} $(meter 5h "$five_pct" "$five_el")"
   seg+=" \033[$(pct_color "$five_pct")m${five_pct}%${RESET}"
   (( five_reset > 0 )) && seg+=" ${DIM}↻$(fmt_reset "$five_reset")${RESET}"
   row2+=("$seg")
 fi
 
 if (( week_pct >= 0 )); then
-  seg="${DIM}7d${RESET} "
-  if (( week_reset > 0 )); then
-    seg+="$(stacked_bar "$week_pct" "$(elapsed_pct "$week_reset" 604800)" 10)"
-  else
-    seg+="$(bar "$week_pct" 10)"
-  fi
+  week_el=-1
+  (( week_reset > 0 )) && week_el=$(elapsed_pct "$week_reset" 604800)
+  seg="${DIM}7d${RESET} $(meter 7d "$week_pct" "$week_el")"
   seg+=" \033[$(pct_color "$week_pct")m${week_pct}%${RESET}"
   (( week_reset > 0 )) && seg+=" ${DIM}↻$(fmt_reset "$week_reset")${RESET}"
   row2+=("$seg")
 fi
 
 if (( fable_pct >= 0 )); then
-  seg="${DIM}Fable${RESET} "
-  # Two-column vertical meter instead of a 10-cell bar: the Fable window is
-  # secondary, so it gets a compact glance — heights for usage and time.
-  if (( fable_reset > 0 )); then
-    seg+="$(vert_meter "$fable_pct" "$(elapsed_pct "$fable_reset" 604800)")"
-  else
-    seg+="$(printf '\033[%s;%sm%s\033[0m' "$(pct_color "$fable_pct")" "$TRACK" "$(vglyph "$fable_pct")")"
-  fi
+  fable_el=-1
+  (( fable_reset > 0 )) && fable_el=$(elapsed_pct "$fable_reset" 604800)
+  seg="${DIM}Fable${RESET} $(meter fable "$fable_pct" "$fable_el")"
   # No ↻ countdown here: the Fable window resets with the 7-day one, so the
   # segment before it already shows this exact time.
   seg+=" \033[$(pct_color "$fable_pct")m${fable_pct}%${RESET}"

@@ -8,6 +8,17 @@
 # Palette, thresholds, bar geometry and effort labels mirror statusline.sh —
 # change one, change the other.
 
+# --- settings. The same ~/.statuslinerc as statusline.sh, sourced the same
+# way: plain shell, and a variable already set in the environment wins.
+STATUSLINE_RC=${STATUSLINE_RC:-$HOME/.statuslinerc}
+if [[ -r $STATUSLINE_RC ]]; then
+  rc_env=$(declare -p COMPACT 2>/dev/null)
+  # shellcheck source=/dev/null
+  source "$STATUSLINE_RC"
+  [[ -n $rc_env ]] && eval "$rc_env"
+  unset rc_env
+fi
+
 input=$(cat)
 columns=$(jq -r '.columns // 80' <<<"$input")
 # A non-integer would be fatal, not ignored: bash aborts the script when an
@@ -40,6 +51,31 @@ bar() {
   out+="${partials[$part]}"
   local used=$(( full + (part > 0 ? 1 : 0) ))
   printf '\033[%s;%sm%s%*s\033[0m' "$TRACK" "$fg" "$out" $(( w - used )) ""
+}
+
+# vglyph <pct> — one block glyph whose height is the percentage, in eighths
+# (same as statusline.sh). ▁ is the floor so 0% still shows a base.
+vglyph() {
+  local pct=$1 g=("▁" "▁" "▂" "▃" "▄" "▅" "▆" "▇" "█")
+  (( pct < 0 )) && pct=0; (( pct > 100 )) && pct=100
+  printf '%s' "${g[$(( (pct * 8 + 50) / 100 ))]}"
+}
+
+# COMPACT — the same list statusline.sh reads. With `ctx` in it the context
+# bar folds into a single block glyph, and the grid narrows with it: the meter
+# is CTX_CELLS wide on every row, drawn or not.
+COMPACT=${COMPACT-fable}
+is_compact() { [[ ",${COMPACT// /}," == *",$1,"* ]]; }
+CTX_CELLS=10
+is_compact ctx && CTX_CELLS=1
+
+# ctx_meter <pct> — the context gauge, CTX_CELLS wide
+ctx_meter() {
+  if (( CTX_CELLS == 1 )); then
+    printf '\033[%s;%sm%s\033[0m' "$(ctx_color "$1")" "$TRACK" "$(vglyph "$1")"
+  else
+    bar "$1" "$CTX_CELLS"
+  fi
 }
 
 # --- display width. A terminal counts columns; bash counts characters. CJK
@@ -213,7 +249,7 @@ done < <(jq -r '(.tasks // [])[] |
 
 # Name, bar, percentage and tokens are fixed-width, so the columns after them
 # start in the same place on every row.
-METER_CELLS=$(( 10 + 1 + PCT_CELLS + 1 + TOKENS_CELLS ))
+METER_CELLS=$(( CTX_CELLS + 1 + PCT_CELLS + 1 + TOKENS_CELLS ))
 row_start=$(( namew + 1 + METER_CELLS ))
 
 # A column is dropped for every row or for none: dropping it per row would
@@ -229,10 +265,10 @@ show_mdl=$(( mdlw > 0 )) show_eff=$(( effw > 0 ))
 for i in "${!ids[@]}"; do
   pct=${pcts[i]} tok_str=${toks[i]}
   if (( pct >= 0 )); then
-    meter="$(bar "$pct" 10) "$'\033['"$(ctx_color "$pct")m$(printf '%*s' "$PCT_CELLS" "${pct}%")${RESET}"
+    meter="$(ctx_meter "$pct") "$'\033['"$(ctx_color "$pct")m$(printf '%*s' "$PCT_CELLS" "${pct}%")${RESET}"
   else
     # no window size, so no bar and no percentage — the tokens still line up
-    meter=$(printf '%*s' $(( 10 + 1 + PCT_CELLS )) '')
+    meter=$(printf '%*s' $(( CTX_CELLS + 1 + PCT_CELLS )) '')
   fi
   meter+=" ${DIM}$(printf '%*s' "$TOKENS_CELLS" "$tok_str")${RESET}"
 

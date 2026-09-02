@@ -127,9 +127,53 @@ It removes both scripts from `~/.claude/`, the `statusLine` and
 `subagentStatusLine` entries in `settings.json`, and the cache under
 `~/.claude/cache/`. It backs up the scripts and `settings.json` as `.bak`
 first. It changes nothing else, and it leaves an entry alone if it points at
-another statusline. `--no-settings` removes the scripts only.
+another statusline. It leaves `~/.statuslinerc` alone. `--no-settings`
+removes the scripts only.
 
 </details>
+
+## Settings
+
+Optional: everything works without a config file. `~/.statuslinerc` is there
+when you want to change what the second row draws.
+
+Both scripts source it, so it is plain shell — one assignment per line, `#`
+for a comment. A variable already set in the environment wins over the file,
+so `COMPACT= claude` tries a setting for one session without editing anything.
+Point `STATUSLINE_RC` at another path to read another file.
+
+```sh
+# ~/.statuslinerc
+COMPACT="fable"                   # which gauges are compact — see below
+STATUSLINE_LOC_MAX=34             # pin the first row's name budget
+CLAUDE_STATUSLINE_NO_KEYCHAIN=1   # never ask the Keychain for the token
+```
+
+### COMPACT
+
+A gauge is drawn either as a 10-cell bar or as the compact vertical meter the
+Fable window uses: usage height beside the window's clock, in eighths, on the
+same dark track. `COMPACT` is the list of gauges that get the compact form —
+`ctx`, `5h`, `7d`, `fable`, comma-separated, in any order. The default is
+`fable` alone. Each id you add gives eight cells back to the row.
+
+```text
+COMPACT="fable"             Ctx ███░░░░░░░ 28% 90k │ 5h ▀▀░░░░░░░░ 4% ↻2h │ 7d ▀▀▀░░░░░░░ 16% ↻3d10h │ Fable ▁▅ 8%
+COMPACT="5h,7d,fable"       Ctx ███░░░░░░░ 28% 90k │ 5h ▁▅ 4% ↻2h │ 7d ▂▄ 16% ↻3d10h │ Fable ▁▅ 8%
+COMPACT="ctx,5h,7d,fable"   Ctx ▃ 28% 90k │ 5h ▁▅ 4% ↻2h │ 7d ▂▄ 16% ↻3d10h │ Fable ▁▅ 8%
+COMPACT=""                  Ctx ███░░░░░░░ 28% 90k │ 5h ▀▀░░░░░░░░ 4% ↻2h │ 7d ▀▀▀░░░░░░░ 16% ↻3d10h │ Fable █░░░░░░░░░ 8%
+```
+
+The percentage never moves: it carries the exact number whichever form the
+gauge takes, and it keeps its own absolute colors.
+
+A gauge with no window time to plot draws a single column instead of two —
+`ctx`, which has no clock, and a limit window that arrives without a reset
+time. It then takes the percentage's color rather than the pace color, the
+same way its bar does.
+
+`ctx` also narrows the context bar in the agent panel, so every subagent row
+narrows with it.
 
 ## What it shows
 
@@ -169,7 +213,8 @@ claude-statusline ⎇ main                             3 mod │ +182 -47
   Claude Code passes the terminal width in `COLUMNS`, which requires v2.1.153
   or later. Without it the budget is a fixed 64 columns minus the groups. It
   never falls below 24 columns, however narrow the terminal. To pin it to a
-  fixed number, set `STATUSLINE_LOC_MAX`, which overrides both. Widths are
+  fixed number, set `STATUSLINE_LOC_MAX` (in the environment or in
+  `~/.statuslinerc`), which overrides both. Widths are
   measured in terminal columns: a CJK or emoji glyph counts as two.
 - **3 mod** — how many files changed, by kind: `add`, `mod`, `del`, and `?`
   for untracked. The count carries the weight and the color; the label stays
@@ -238,7 +283,8 @@ Requires Claude Code v2.1.205 or later.
 Fable has its own weekly quota. The limit is usually lower than for other
 models, so it gets a glance instead of a track: two columns, your usage beside
 the week's clock, and the exact number in the percentage. Fable resets with
-the 7-day window, so it shows no `↻` of its own.
+the 7-day window, so it shows no `↻` of its own. It is the one gauge drawn
+that way by default — [`COMPACT`](#compact) decides for all four.
 
 Claude Code does not send this value. The script reads it from `~/.claude.json`
 and refreshes it from the API in the background, at most every ten minutes.
@@ -246,8 +292,9 @@ and refreshes it from the API in the background, at most every ten minutes.
 On macOS the refresh reads the OAuth token from the Keychain, because Claude
 Code stores it there instead of in `~/.claude/.credentials.json`. The first
 read can open a Keychain dialog. Click **Always Allow** once and it stops
-asking. To skip the Keychain, set `CLAUDE_STATUSLINE_NO_KEYCHAIN=1`. The Fable
-bar then uses only the CLI's own cache.
+asking. To skip the Keychain, set `CLAUDE_STATUSLINE_NO_KEYCHAIN=1` in the
+environment or in `~/.statuslinerc`. The Fable bar then uses only the CLI's own
+cache.
 
 ### Repo and git state
 

@@ -4,6 +4,38 @@ Notable changes, newest first. Dates instead of versions: the install one-liner
 always serves `main`, so a date names a state of `main` better than a version
 number would.
 
+## 2026-09-02
+
+### Added
+
+- **`~/.statuslinerc`, one settings file for both scripts.** It is sourced, so
+  it is plain shell: one assignment per line and `#` comments, nothing to
+  parse. A variable already set in the environment still wins over the file, so
+  a one-off `COMPACT= claude` overrides it for a session. `STATUSLINE_RC`
+  points at another path. The file is optional and nothing changes without it;
+  the existing `STATUSLINE_LOC_MAX` and `CLAUDE_STATUSLINE_NO_KEYCHAIN` can
+  live in it too.
+- **`COMPACT` generalises the Fable meter to any gauge.** The vertical meter
+  the Fable window got on 2026-08-31 is now a form any gauge can take:
+  `COMPACT` is the comma-separated list of ids drawn that way — `ctx`, `5h`,
+  `7d`, `fable` — and defaults to `fable`, which is exactly what the row looked
+  like before. `COMPACT="ctx,5h,7d,fable"` folds the whole row into glyph
+  heights and gives some thirty cells back; `COMPACT=""` puts Fable back on a
+  10-cell bar. The percentages are untouched, and keep their absolute colors.
+  A gauge with no window time to plot — `ctx`, or a limit window that arrives
+  without a reset time — draws a single column instead of two.
+- **`ctx` narrows the agent panel too.** `subagent-statusline.sh` reads the
+  same file: with `ctx` in `COMPACT` the per-agent context bar folds to one
+  glyph and the whole grid narrows with it, so the columns after it still line
+  up across rows.
+
+### Changed
+
+- **The gauges go through one `meter()`.** `statusline.sh` chose bar or meter
+  inline in each segment; the four now call `meter <id> <used> <time>`, which
+  reads `COMPACT` and picks the form. The mockups in `docs/index.html` and
+  `remotion/` render the default and are unchanged.
+
 ## 2026-08-31
 
 ### Changed

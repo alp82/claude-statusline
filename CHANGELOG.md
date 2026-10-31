@@ -4,6 +4,22 @@ Notable changes, newest first. Dates instead of versions: the install one-liner
 always serves `main`, so a date names a state of `main` better than a version
 number would.
 
+## 2026-10-31
+
+### Added
+
+- **A usage budget replaces the 5h/7d bars on pay-per-token orgs.** Where the
+  usage payload has no 5h or 7d window but does carry a spend cap, the second
+  row shows a budget segment instead: the currency symbol (`$`, `€`, `£`, or
+  the ISO code), a bar, the percentage, spend against the cap in whole units,
+  and a `↻` countdown. The numbers come from `.spend`, falling back to the
+  older `.extra_usage`; a source whose numbers are missing or out of range
+  falls through to the next instead of breaking the row. A personal plan's
+  disabled, uncapped budget stays hidden, and so does a plan's own overage
+  cap. The payload carries no reset time, so a monthly budget is taken to run
+  by calendar month in UTC, which gives it the same pace row and countdown as
+  the 5h/7d bars.
+
 ## 2026-09-02
 
 ### Added

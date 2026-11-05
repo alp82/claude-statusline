@@ -4,6 +4,38 @@ Notable changes, newest first. Dates instead of versions: the install one-liner
 always serves `main`, so a date names a state of `main` better than a version
 number would.
 
+## 2026-11-05
+
+### Fixed
+
+- Calculate budget percentages after converting each amount's currency scale,
+  so spending 50 of a 100 cap shows 50% even when the exponents differ.
+- Reject non-integer currency exponents or values outside 0–12 before scaling,
+  allowing malformed budgets to fall back without stalling the statusline.
+- Show the assumed UTC monthly pace and reset countdown for `.spend` budgets
+  even when the older `.extra_usage` object is absent.
+
+### Changed
+
+- Drop the budget's monthly flag: every budget is now taken to run by calendar
+  month, so the flag was always set and its check did nothing.
+
+## 2026-10-31
+
+### Added
+
+- **A usage budget replaces the 5h/7d bars on pay-per-token orgs.** Where the
+  usage payload has no 5h or 7d window but does carry a spend cap, the second
+  row shows a budget segment instead: the currency symbol (`$`, `€`, `£`, or
+  the ISO code), a bar, the percentage, spend against the cap in whole units,
+  and a `↻` countdown. The numbers come from `.spend`, falling back to the
+  older `.extra_usage`; a source whose numbers are missing or out of range
+  falls through to the next instead of breaking the row. A personal plan's
+  disabled, uncapped budget stays hidden, and so does a plan's own overage
+  cap. The payload carries no reset time, so a monthly budget is taken to run
+  by calendar month in UTC, which gives it the same pace row and countdown as
+  the 5h/7d bars.
+
 ## 2026-09-02
 
 ### Added

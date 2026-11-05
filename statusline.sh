@@ -3,6 +3,8 @@
 #   dir ⎇ branch                         3 mod │ +182 -47
 #
 #   ★ Model · effort │ Ctx ▓▓░ 9% 90k │ 5h ▓░░ 4% ↻2h │ 7d ▓▓░ 16% ↻3d10h
+# On a monthly usage budget (pay-per-token orgs) the limits read instead:
+#   ★ Model · effort │ Ctx ▓▓░ 9% 90k │ $ ▓▓▓░░ 52% 1040/2000 ↻1d
 # Reads the statusline JSON from stdin (see https://code.claude.com/docs/en/statusline.md)
 
 input=$(cat)
@@ -100,6 +102,68 @@ if [[ -n "$usage_json" ]]; then
       || date -j -u -f '%Y-%m-%dT%H:%M:%S' "${fable_reset_raw:0:19}" +%s 2>/dev/null \
       || echo 0)
   fi
+fi
+
+# A usage budget, for orgs that pay per token: no 5h/7d windows, a spend cap
+# instead. `.spend` carries it in minor units ({amount_minor, exponent});
+# `.extra_usage` is the older copy of the same numbers, with `monthly_limit`
+# naming the period. A personal plan has the object too, with spend disabled
+# and no limit, so the budget only shows where one is actually set — and only
+# without 5h/7d windows, so a plan's own overage cap stays off its row.
+#
+# Each source is a row of its own, tried in turn: one whose numbers are
+# missing or malformed errors inside its `try` and falls through to the next,
+# rather than taking the other down with it. `d` is the empty-field guard from
+# the first read, for the same tab-collapse reason.
+budget_pct=-1 budget_used=0 budget_limit=0 budget_cur=USD
+if [[ -n "$usage_json" ]]; then
+  IFS=$'\t' read -r budget_pct budget_used budget_limit budget_cur <<<"$(jq -r '
+    def d($fallback): if (. // "") == "" then $fallback else . end;
+    # a value out of range is an error, so its row falls through like any other
+    def in_range($max): if type == "number" and . >= 0 and . <= $max then . else error end;
+    # Bound the scale before iterating; malformed exponents must fall through.
+    def units($minor; $exp):
+      ($exp | in_range(12) | if . == floor then . else error end) as $e |
+      $minor / (reduce range(0; $e) as $_ (1; . * 10)) | in_range(1e12);
+    def pct: round | in_range(1000);
+    def positive: type == "number" and . > 0;
+    ((.extra_usage | objects) // {}) as $x | ((.spend | objects) // {}) as $s |
+    def spend_row:
+      if $s.enabled == true and ($s.limit.amount_minor | positive) then
+        ($s.limit.exponent // 2) as $e |
+        units($s.used.amount_minor // 0; $s.used.exponent // $e) as $used |
+        units($s.limit.amount_minor; $e) as $limit |
+        [ ($s.percent // ($used / $limit * 100) | pct),
+          ($used | floor),
+          ($limit | floor),
+          ($s.limit.currency // $s.used.currency | d("USD")) ] | @tsv
+      else empty end;
+    def extra_row:
+      if $x.is_enabled == true and ($x.monthly_limit | positive) then
+        ($x.decimal_places // 2) as $e |
+        units($x.used_credits // 0; $e) as $used |
+        units($x.monthly_limit; $e) as $limit |
+        [ ($x.utilization // ($used / $limit * 100) | pct),
+          ($used | floor),
+          ($limit | floor),
+          ($x.currency | d("USD")) ] | @tsv
+      else empty end;
+    if .five_hour != null or .seven_day != null then empty
+    else first((try spend_row catch empty), (try extra_row catch empty)) end
+    ' <<<"$usage_json" 2>/dev/null)"
+  [[ $budget_pct =~ ^[0-9]+$ ]] || budget_pct=-1
+fi
+
+# The payload has no reset time for the budget. Capped budgets are assumed to run
+# by calendar month, UTC: its window is the 1st of this month to the 1st of the
+# next, which feeds the same pace row and ↻ countdown as the 5h/7d bars.
+month_start=0 month_end=0
+if (( budget_pct >= 0 )); then
+  IFS=$'\t' read -r month_start month_end <<<"$(jq -rn 'now | gmtime as [$y, $m] |
+    [([$y, $m, 1, 0, 0, 0, 0, 0] | mktime),
+     (if $m == 11 then [$y + 1, 0, 1, 0, 0, 0, 0, 0] else [$y, $m + 1, 1, 0, 0, 0, 0, 0] end | mktime)]
+    | @tsv' 2>/dev/null)"
+  [[ $month_start =~ ^[0-9]+$ && $month_end =~ ^[0-9]+$ ]] || month_start=0 month_end=0
 fi
 
 RESET='\033[0m'
@@ -502,6 +566,30 @@ if (( week_pct >= 0 )); then
   fi
   seg+=" \033[$(pct_color "$week_pct")m${week_pct}%${RESET}"
   (( week_reset > 0 )) && seg+=" ${DIM}↻$(fmt_reset "$week_reset")${RESET}"
+  row2+=("$seg")
+fi
+
+# cur_symbol <ISO code> — the label for the budget segment
+cur_symbol() {
+  case $1 in
+    USD) printf '$' ;;
+    EUR) printf '€' ;;
+    GBP) printf '£' ;;
+    *)   printf '%s' "$1" ;;
+  esac
+}
+
+# Budget: spend so far against the cap, whole currency units (cents dropped)
+if (( budget_pct >= 0 )); then
+  seg="${DIM}$(cur_symbol "$budget_cur")${RESET} "
+  if (( month_end > month_start )); then
+    seg+="$(stacked_bar "$budget_pct" "$(elapsed_pct "$month_end" $(( month_end - month_start )))" 10)"
+  else
+    seg+="$(bar "$budget_pct" 10)"
+  fi
+  seg+=" \033[$(pct_color "$budget_pct")m${budget_pct}%${RESET}"
+  seg+=" ${DIM}${budget_used}/${budget_limit}${RESET}"
+  (( month_end > 0 )) && seg+=" ${DIM}↻$(fmt_reset "$month_end")${RESET}"
   row2+=("$seg")
 fi
 

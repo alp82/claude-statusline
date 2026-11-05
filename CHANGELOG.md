@@ -4,6 +4,17 @@ Notable changes, newest first. Dates instead of versions: the install one-liner
 always serves `main`, so a date names a state of `main` better than a version
 number would.
 
+## 2026-11-05
+
+### Fixed
+
+- Calculate budget percentages after converting each amount's currency scale,
+  so spending 50 of a 100 cap shows 50% even when the exponents differ.
+- Reject non-integer currency exponents or values outside 0–12 before scaling,
+  allowing malformed budgets to fall back without stalling the statusline.
+- Show the assumed UTC monthly pace and reset countdown for `.spend` budgets
+  even when the older `.extra_usage` object is absent.
+
 ## 2026-10-31
 
 ### Added

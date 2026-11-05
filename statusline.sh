@@ -120,26 +120,33 @@ if [[ -n "$usage_json" ]]; then
   IFS=$'\t' read -r budget_pct budget_used budget_limit budget_cur budget_monthly <<<"$(jq -r '
     def d($fallback): if (. // "") == "" then $fallback else . end;
     # a value out of range is an error, so its row falls through like any other
-    def in_range($max): if . >= 0 and . <= $max then . else error end;
-    def units($minor; $exp): $minor / (reduce range(0; $exp) as $_ (1; . * 10)) | floor | in_range(1e12);
+    def in_range($max): if type == "number" and . >= 0 and . <= $max then . else error end;
+    # Bound the scale before iterating; malformed exponents must fall through.
+    def units($minor; $exp):
+      ($exp | in_range(12) | if . == floor then . else error end) as $e |
+      $minor / (reduce range(0; $e) as $_ (1; . * 10)) | in_range(1e12);
     def pct: round | in_range(1000);
     def positive: type == "number" and . > 0;
     ((.extra_usage | objects) // {}) as $x | ((.spend | objects) // {}) as $s |
     def spend_row:
       if $s.enabled == true and ($s.limit.amount_minor | positive) then
         ($s.limit.exponent // 2) as $e |
-        [ ($s.percent // (($s.used.amount_minor // 0) / $s.limit.amount_minor * 100) | pct),
-          units($s.used.amount_minor // 0; $s.used.exponent // $e),
-          units($s.limit.amount_minor; $e),
+        units($s.used.amount_minor // 0; $s.used.exponent // $e) as $used |
+        units($s.limit.amount_minor; $e) as $limit |
+        [ ($s.percent // ($used / $limit * 100) | pct),
+          ($used | floor),
+          ($limit | floor),
           ($s.limit.currency // $s.used.currency | d("USD")),
-          (if $x.monthly_limit != null then 1 else 0 end) ] | @tsv
+          1 ] | @tsv
       else empty end;
     def extra_row:
       if $x.is_enabled == true and ($x.monthly_limit | positive) then
         ($x.decimal_places // 2) as $e |
-        [ ($x.utilization // (($x.used_credits // 0) / $x.monthly_limit * 100) | pct),
-          units($x.used_credits // 0; $e),
-          units($x.monthly_limit; $e),
+        units($x.used_credits // 0; $e) as $used |
+        units($x.monthly_limit; $e) as $limit |
+        [ ($x.utilization // ($used / $limit * 100) | pct),
+          ($used | floor),
+          ($limit | floor),
           ($x.currency | d("USD")), 1 ] | @tsv
       else empty end;
     if .five_hour != null or .seven_day != null then empty
@@ -148,7 +155,7 @@ if [[ -n "$usage_json" ]]; then
   [[ $budget_pct =~ ^[0-9]+$ ]] || budget_pct=-1
 fi
 
-# The payload has no reset time for the budget. A monthly one is taken to run
+# The payload has no reset time for the budget. Capped budgets are assumed to run
 # by calendar month, UTC: its window is the 1st of this month to the 1st of the
 # next, which feeds the same pace row and ↻ countdown as the 5h/7d bars.
 month_start=0 month_end=0

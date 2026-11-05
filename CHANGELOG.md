@@ -15,6 +15,11 @@ number would.
 - Show the assumed UTC monthly pace and reset countdown for `.spend` budgets
   even when the older `.extra_usage` object is absent.
 
+### Changed
+
+- Drop the budget's monthly flag: every budget is now taken to run by calendar
+  month, so the flag was always set and its check did nothing.
+
 ## 2026-10-31
 
 ### Added

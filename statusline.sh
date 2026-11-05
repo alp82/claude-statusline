@@ -115,9 +115,9 @@ fi
 # missing or malformed errors inside its `try` and falls through to the next,
 # rather than taking the other down with it. `d` is the empty-field guard from
 # the first read, for the same tab-collapse reason.
-budget_pct=-1 budget_used=0 budget_limit=0 budget_cur=USD budget_monthly=0
+budget_pct=-1 budget_used=0 budget_limit=0 budget_cur=USD
 if [[ -n "$usage_json" ]]; then
-  IFS=$'\t' read -r budget_pct budget_used budget_limit budget_cur budget_monthly <<<"$(jq -r '
+  IFS=$'\t' read -r budget_pct budget_used budget_limit budget_cur <<<"$(jq -r '
     def d($fallback): if (. // "") == "" then $fallback else . end;
     # a value out of range is an error, so its row falls through like any other
     def in_range($max): if type == "number" and . >= 0 and . <= $max then . else error end;
@@ -136,8 +136,7 @@ if [[ -n "$usage_json" ]]; then
         [ ($s.percent // ($used / $limit * 100) | pct),
           ($used | floor),
           ($limit | floor),
-          ($s.limit.currency // $s.used.currency | d("USD")),
-          1 ] | @tsv
+          ($s.limit.currency // $s.used.currency | d("USD")) ] | @tsv
       else empty end;
     def extra_row:
       if $x.is_enabled == true and ($x.monthly_limit | positive) then
@@ -147,7 +146,7 @@ if [[ -n "$usage_json" ]]; then
         [ ($x.utilization // ($used / $limit * 100) | pct),
           ($used | floor),
           ($limit | floor),
-          ($x.currency | d("USD")), 1 ] | @tsv
+          ($x.currency | d("USD")) ] | @tsv
       else empty end;
     if .five_hour != null or .seven_day != null then empty
     else first((try spend_row catch empty), (try extra_row catch empty)) end
@@ -159,7 +158,7 @@ fi
 # by calendar month, UTC: its window is the 1st of this month to the 1st of the
 # next, which feeds the same pace row and ↻ countdown as the 5h/7d bars.
 month_start=0 month_end=0
-if (( budget_pct >= 0 && budget_monthly == 1 )); then
+if (( budget_pct >= 0 )); then
   IFS=$'\t' read -r month_start month_end <<<"$(jq -rn 'now | gmtime as [$y, $m] |
     [([$y, $m, 1, 0, 0, 0, 0, 0] | mktime),
      (if $m == 11 then [$y + 1, 0, 1, 0, 0, 0, 0, 0] else [$y, $m + 1, 1, 0, 0, 0, 0, 0] end | mktime)]

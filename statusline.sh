@@ -595,6 +595,9 @@ if (( budget_pct >= 0 )); then
   seg+=" ${DIM}${budget_used}/${budget_limit}${RESET}"
   (( month_end > 0 )) && seg+=" ${DIM}↻$(fmt_reset "$month_end")${RESET}"
   row2+=("$seg")
+  # Session cost: Claude Code's own estimate at list prices, always in USD. Only
+  # beside a budget — on a subscription nobody pays per token, so it means nothing.
+  [[ $session_cost =~ ^[0-9]+\.[0-9][0-9]$ ]] && row2+=("${DIM}Session${RESET} \$${session_cost}")
 fi
 
 if (( fable_pct >= 0 )); then
@@ -610,12 +613,6 @@ if (( fable_pct >= 0 )); then
   # segment before it already shows this exact time.
   seg+=" \033[$(pct_color "$fable_pct")m${fable_pct}%${RESET}"
   row2+=("$seg")
-fi
-
-# Session cost: Claude Code's own estimate at list prices, always in USD. Only
-# beside a budget — on a subscription nobody pays per token, so it means nothing.
-if (( budget_pct >= 0 )) && [[ $session_cost =~ ^[0-9]+\.[0-9][0-9]$ ]]; then
-  row2+=("${DIM}Session${RESET} \$${session_cost}")
 fi
 
 # Each line printed is one row of the statusline. A row with nothing in it —

@@ -4,6 +4,14 @@ Notable changes, newest first. Dates instead of versions: the install one-liner
 always serves `main`, so a date names a state of `main` better than a version
 number would.
 
+## 2026-11-08
+
+### Added
+
+- A `Session $3.42` segment after the monthly budget: Claude Code's own
+  estimate of what this session cost at list prices, always in USD. It shows
+  only next to a budget, since on a subscription nobody pays per token.
+
 ## 2026-11-05
 
 ### Fixed

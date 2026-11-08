@@ -4,7 +4,7 @@
 #
 #   ★ Model · effort │ Ctx ▓▓░ 9% 90k │ 5h ▓░░ 4% ↻2h │ 7d ▓▓░ 16% ↻3d10h
 # On a monthly usage budget (pay-per-token orgs) the limits read instead:
-#   ★ Model · effort │ Ctx ▓▓░ 9% 90k │ $ ▓▓▓░░ 52% 1040/2000 ↻1d
+#   ★ Model · effort │ Ctx ▓▓░ 9% 90k │ $ ▓▓▓░░ 52% 1040/2000 ↻1d │ Session $3.42
 # Reads the statusline JSON from stdin (see https://code.claude.com/docs/en/statusline.md)
 
 input=$(cat)
@@ -13,7 +13,7 @@ input=$(cat)
 # empty field would shift every value after it. `d` keeps the text fields
 # non-empty. A path cannot hold U+001F, so it stands in for "no directory"
 # and is cleared right after the read.
-IFS=$'\t' read -r model effort dir version ctx_pct ctx_tokens five_pct five_reset week_pct week_reset <<<"$(jq -r '
+IFS=$'\t' read -r model effort dir version ctx_pct ctx_tokens five_pct five_reset week_pct week_reset session_cost <<<"$(jq -r '
 def d($fallback): if (. // "") == "" then $fallback else . end;
 [
   (.model.display_name | d("?")),
@@ -25,7 +25,11 @@ def d($fallback): if (. // "") == "" then $fallback else . end;
   (.rate_limits.five_hour.used_percentage // -1 | round),
   (.rate_limits.five_hour.resets_at // 0),
   (.rate_limits.seven_day.used_percentage // -1 | round),
-  (.rate_limits.seven_day.resets_at // 0)
+  (.rate_limits.seven_day.resets_at // 0),
+  # dollars and cents, formatted here: bash printf %.2f follows the locale and
+  # reads "3.42" as invalid where the decimal mark is a comma
+  ((.cost | objects | .total_cost_usd | numbers | select(. >= 0) | . * 100 | round
+    | "\(. / 100 | floor).\(. % 100 + 100 | tostring | .[1:])") // "-")
 ] | @tsv' <<<"$input")"
 [[ $dir == $'\x1f' ]] && dir=""
 [[ $effort == $'\x1f' ]] && effort=""   # absent for models without an effort setting
@@ -606,6 +610,12 @@ if (( fable_pct >= 0 )); then
   # segment before it already shows this exact time.
   seg+=" \033[$(pct_color "$fable_pct")m${fable_pct}%${RESET}"
   row2+=("$seg")
+fi
+
+# Session cost: Claude Code's own estimate at list prices, always in USD. Only
+# beside a budget — on a subscription nobody pays per token, so it means nothing.
+if (( budget_pct >= 0 )) && [[ $session_cost =~ ^[0-9]+\.[0-9][0-9]$ ]]; then
+  row2+=("${DIM}Session${RESET} \$${session_cost}")
 fi
 
 # Each line printed is one row of the statusline. A row with nothing in it —

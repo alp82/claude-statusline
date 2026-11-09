@@ -597,7 +597,7 @@ if (( budget_pct >= 0 )); then
   row2+=("$seg")
   # Session cost: Claude Code's own estimate at list prices, always in USD. Only
   # beside a budget — on a subscription nobody pays per token, so it means nothing.
-  [[ $session_cost =~ ^[0-9]+\.[0-9][0-9]$ ]] && row2+=("${DIM}Session${RESET} \$${session_cost}")
+  [[ $session_cost =~ ^[0-9]+\.[0-9][0-9]$ ]] && row2+=("${DIM}Session${RESET} \033[$(pct_color 0)m\$${session_cost}${RESET}")
 fi
 
 if (( fable_pct >= 0 )); then

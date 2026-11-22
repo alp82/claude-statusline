@@ -60,12 +60,12 @@ const fmtTokens = (t: number) => `${Math.min(999, Math.max(1, Math.floor((t + 50
 export function shortModel(id: string): string {
   const onem = id.includes('[1m]') ? ' 1M' : ''
   let fam: string, ver: string, m: RegExpMatchArray | null
-  if ((m = id.match(/(\d+)-(\d+)-(opus|sonnet|haiku)/))) { fam = m[3]; ver = `${m[1]}.${m[2]}` }
-  else if ((m = id.match(/(\d+)-(opus|sonnet|haiku)/))) { fam = m[2]; ver = m[1] }
+  if ((m = id.match(/(\d+)-(\d+)-(opus|sonnet|haiku)/))) { fam = m[3]!; ver = `${m[1]!}.${m[2]!}` }
+  else if ((m = id.match(/(\d+)-(opus|sonnet|haiku)/))) { fam = m[2]!; ver = m[1]! }
   else if ((m = id.match(/(opus|sonnet|haiku|fable)-(\d+)(-(\d{1,2})([-@]|$))?/))) {
-    fam = m[1]; ver = m[2] + (m[4] ? `.${m[4]}` : '')
+    fam = m[1]!; ver = m[2]! + (m[4] ? `.${m[4]}` : '')
   } else return ''
-  return `${fam[0].toUpperCase()}${fam.slice(1)} ${ver}${onem}`
+  return `${fam.charAt(0).toUpperCase()}${fam.slice(1)} ${ver}${onem}`
 }
 
 /** Every row's body, keyed by agent id, laid out on one shared grid. */

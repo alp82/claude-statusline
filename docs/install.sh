@@ -361,7 +361,14 @@ install_script() {
 }
 
 install_script "$tmp" "$TARGET"
-install_script "$sub_tmp" "$SUB_TARGET"
+
+# An older install's agent-rows script. Claude Code no longer runs it, so it
+# goes — backed up, like everything this installer removes.
+if [[ -L $SUB_TARGET || -e $SUB_TARGET ]]; then
+  cp -Pp "$SUB_TARGET" "$SUB_TARGET.bak"
+  rm -f "$SUB_TARGET"
+  ok "removed the old $SUB_TARGET ${DIM}(backup: $SUB_TARGET.bak)${RESET}"
+fi
 
 # --- settings ---------------------------------------------------------------
 wired=0
@@ -397,10 +404,23 @@ if (( PATCH_SETTINGS )); then
     settings_snippet
   else
     current=$(jq -r '.statusLine.command // ""' "$SETTINGS")
-    sub_current=$(jq -r '.subagentStatusLine.command // ""' "$SETTINGS")
+    # Guarded like the uninstall path: a non-object subagentStatusLine
+    # must not abort the install under set -e.
+    sub_current=$(jq -r '.subagentStatusLine.command? // ""' "$SETTINGS" 2>/dev/null) || sub_current=''
+    # Claude Code no longer runs subagentStatusLine. Ours goes; someone
+    # else's is theirs to remove.
+    drop_sub=false
+    if [[ -n $sub_current ]]; then
+      if is_our_sub "$sub_current"; then
+        drop_sub=true
+      else
+        warn "$SETTINGS points subagentStatusLine at something else — leaving it alone:"
+        warn "  $sub_current"
+      fi
+    fi
     # a previous install (or the old README recipe) may have written the tilde form
-    if is_ours "$current" && [[ $sub_current == "$SUB_CMD" ]]; then
-      ok "settings.json already points at both"
+    if is_ours "$current" && [[ $drop_sub == false ]]; then
+      ok "settings.json already points at statusline.sh"
       wired=1
     else
       note=''
@@ -410,14 +430,14 @@ if (( PATCH_SETTINGS )); then
         if [[ -n $current ]] && ! is_ours "$current"; then
           step "replacing existing statusLine command ($current)"
         fi
-        if [[ -n $sub_current && $sub_current != "$SUB_CMD" ]]; then
-          step "replacing existing subagentStatusLine command ($sub_current)"
+        if [[ $drop_sub == true ]]; then
+          step "removing the old subagentStatusLine entry ($sub_current)"
         fi
       fi
-      write_settings -n --arg cmd "$CMD" --arg sub "$SUB_CMD" --argjson every "$REFRESH" \
+      write_settings -n --arg cmd "$CMD" --argjson every "$REFRESH" --argjson drop "$drop_sub" \
         'input? // {}
          | .statusLine = {type: "command", command: $cmd, refreshInterval: $every}
-         | .subagentStatusLine = {type: "command", command: $sub}'
+         | if $drop then del(.subagentStatusLine) else . end'
       ok "wired up $SETTINGS$note"
       wired=1
     fi
@@ -425,6 +445,72 @@ if (( PATCH_SETTINGS )); then
 else
   printf '\n%sAdd this to %s:%s\n' "$BOLD" "$SETTINGS" "$RESET"
   settings_snippet
+  printf '%sand remove any subagentStatusLine entry that points at subagent-statusline.sh.%s\n' "$DIM" "$RESET"
+fi
+
+# --- plugin -----------------------------------------------------------------
+# The agent panel rows. A failure here leaves statusline.sh working, so it
+# warns and prints the manual commands instead of failing the install.
+if (( ! PATCH_SETTINGS )); then
+  printf '\n%sThen install the agent rows plugin:%s\n' "$BOLD" "$RESET"
+  plugin_hint
+elif (( ! wired )); then
+  # Installing a plugin rewrites settings.json, which was left alone above.
+  warn "the agent rows plugin is not installed either. Once $SETTINGS is fixed, run:"
+  plugin_hint
+elif ! has_claude; then
+  warn "claude is not on PATH, so the agent rows plugin is not installed. Run:"
+  plugin_hint
+else
+  current_src=$(marketplace_src) || current_src=''
+  if [[ $current_src == "$MARKET_SRC" ]]; then
+    # Same repo and ref: refresh the clone, then the plugin from it.
+    if ! claude_cli plugin marketplace update "$MARKETPLACE" >/dev/null; then
+      if has_plugin; then
+        warn "could not refresh the $MARKETPLACE marketplace; the installed plugin is unchanged."
+      else
+        warn "could not refresh the $MARKETPLACE marketplace, and the agent rows plugin is not installed. Run:"
+        plugin_hint
+      fi
+    elif has_plugin; then
+      if claude_cli plugin update "$PLUGIN" >/dev/null; then
+        ok "updated the $PLUGIN plugin"
+      else
+        warn "could not update $PLUGIN; the installed copy is unchanged. Run: $(cli_env)claude plugin update $PLUGIN"
+      fi
+    elif claude_cli plugin install "$PLUGIN" >/dev/null; then
+      ok "installed the $PLUGIN plugin"
+    else
+      warn "the agent rows plugin did not install. Run:"
+      plugin_hint
+    fi
+  else
+    # Not added yet, or added from another repo or ref. Removing a
+    # marketplace uninstalls its plugins, so this path installs afresh.
+    moved=1
+    if [[ -n $current_src ]]; then
+      step "moving marketplace $MARKETPLACE from $current_src to $MARKET_SRC"
+      if ! claude_cli plugin marketplace remove "$MARKETPLACE" >/dev/null; then
+        if has_plugin; then
+          warn "could not remove the $MARKETPLACE marketplace; the installed plugin is unchanged."
+        else
+          warn "could not remove the $MARKETPLACE marketplace, and the agent rows plugin is not installed. Run:"
+          plugin_hint
+        fi
+        moved=0
+      fi
+    fi
+    if (( moved )); then
+      step "adding marketplace $MARKET_SRC"
+      if claude_cli plugin marketplace add "$MARKET_SRC" >/dev/null \
+          && claude_cli plugin install "$PLUGIN" >/dev/null; then
+        ok "installed the $PLUGIN plugin"
+      else
+        warn "the agent rows plugin did not install. Run:"
+        plugin_hint
+      fi
+    fi
+  fi
 fi
 
 # --- done -------------------------------------------------------------------

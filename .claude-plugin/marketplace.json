@@ -1,0 +1,11 @@
+{
+  "name": "claude-statusline",
+  "owner": { "name": "alp82" },
+  "plugins": [
+    {
+      "name": "subagent-rows",
+      "source": "./subagent-rows",
+      "description": "Agent list rows with a per-agent context bar, model and effort (replaces subagentStatusLine)"
+    }
+  ]
+}

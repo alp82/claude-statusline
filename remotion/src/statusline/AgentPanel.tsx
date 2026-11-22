@@ -12,11 +12,11 @@ import type {AgentRow, Part} from './types';
 const ROW_GAP_RATIO = 0.85;
 
 /**
- * The agent panel, as subagent-statusline.sh draws it: one row per running
+ * The agent panel, as the subagent-rows plugin draws it: one row per running
  * subagent, each with its own context bar. The rows sit on the same cell grid
  * as the statusline, and every variable-width column — name, model, effort —
  * is padded to its widest row, so each field starts in one column down the
- * panel. The script measures the same widths off its payload, and the page
+ * panel. The plugin measures the same widths across its rows, and the page
  * spends them as a min-width.
  */
 export const AgentPanel: React.FC<{

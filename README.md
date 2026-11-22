@@ -31,15 +31,15 @@ window sit on the same line, under the prompt.
 
 One prompt does both. Paste it into Claude Code the first time to install the
 statusline, and paste the same prompt again any time you want the latest
-version. Claude installs or replaces the scripts, updates the settings, and
+version. Claude installs or replaces the script and the plugin, updates the settings, and
 checks the result.
 
 ```text
 Install or update the statusline from https://github.com/alp82/claude-statusline for me.
 Run: curl -fsSL https://alp82.github.io/claude-statusline/install.sh | bash
 Then check that bash, jq and curl are present, confirm ~/.claude/settings.json
-points statusLine at ~/.claude/statusline.sh and subagentStatusLine at
-~/.claude/subagent-statusline.sh, and tell me what to do next.
+points statusLine at ~/.claude/statusline.sh, confirm that claude plugin list
+shows subagent-rows@claude-statusline, and tell me what to do next.
 ```
 
 Claude reads the installer before it runs it and tells you what changed.
@@ -56,10 +56,13 @@ if you already have it:
 curl -fsSL https://alp82.github.io/claude-statusline/install.sh | bash
 ```
 
-It puts `statusline.sh` and `subagent-statusline.sh` into `~/.claude/`, makes
-them executable, and points `settings.json` at them. It copies anything it
-replaces to `<file>.bak` first. Run it again to upgrade. `--no-settings`
-installs the scripts only. `--help` lists all options.
+It puts `statusline.sh` into `~/.claude/`, makes it executable, points
+`settings.json` at it, and installs the `subagent-rows` plugin for the agent
+panel. If `claude` is not on your PATH, it prints the two plugin commands
+instead. It copies anything it replaces to `<file>.bak` first, and it removes
+an older install's `subagent-statusline.sh` and `subagentStatusLine` entry.
+Run it again to upgrade. `--no-settings` installs the script only and prints
+the rest. `--help` lists all options.
 
 </details>
 
@@ -68,14 +71,14 @@ installs the scripts only. `--help` lists all options.
 
 <br>
 
-Two files, nothing else:
+One file and one plugin:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/alp82/claude-statusline/main/statusline.sh \
   -o ~/.claude/statusline.sh
-curl -fsSL https://raw.githubusercontent.com/alp82/claude-statusline/main/subagent-statusline.sh \
-  -o ~/.claude/subagent-statusline.sh
-chmod +x ~/.claude/statusline.sh ~/.claude/subagent-statusline.sh
+chmod +x ~/.claude/statusline.sh
+claude plugin marketplace add alp82/claude-statusline
+claude plugin install subagent-rows@claude-statusline
 ```
 
 Then add this to `~/.claude/settings.json`:
@@ -86,10 +89,6 @@ Then add this to `~/.claude/settings.json`:
     "type": "command",
     "command": "~/.claude/statusline.sh",
     "refreshInterval": 5
-  },
-  "subagentStatusLine": {
-    "type": "command",
-    "command": "~/.claude/subagent-statusline.sh"
   }
 }
 ```
@@ -109,9 +108,9 @@ The same prompt in reverse:
 ```text
 Uninstall the statusline from https://github.com/alp82/claude-statusline for me.
 Run: curl -fsSL https://alp82.github.io/claude-statusline/install.sh | bash -s -- --uninstall
-Then confirm ~/.claude/statusline.sh and ~/.claude/subagent-statusline.sh are gone,
-confirm ~/.claude/settings.json has no statusLine or subagentStatusLine entry,
-and show me which .bak files it left behind.
+Then confirm ~/.claude/statusline.sh is gone, confirm ~/.claude/settings.json
+has no statusLine or subagentStatusLine entry, confirm that claude plugin list
+no longer shows subagent-rows, and show me which .bak files it left behind.
 ```
 
 <details>
@@ -123,11 +122,12 @@ and show me which .bak files it left behind.
 curl -fsSL https://alp82.github.io/claude-statusline/install.sh | bash -s -- --uninstall
 ```
 
-It removes both scripts from `~/.claude/`, the `statusLine` and
-`subagentStatusLine` entries in `settings.json`, and the cache under
-`~/.claude/cache/`. It backs up the scripts and `settings.json` as `.bak`
-first. It changes nothing else, and it leaves an entry alone if it points at
-another statusline. `--no-settings` removes the scripts only.
+It removes `statusline.sh` (and an older install's `subagent-statusline.sh`)
+from `~/.claude/`, the `statusLine` and `subagentStatusLine` entries in
+`settings.json`, the `subagent-rows` plugin and its marketplace, and the cache
+under `~/.claude/cache/`. It backs up the scripts and `settings.json` as
+`.bak` first. It changes nothing else, and it leaves an entry alone if it
+points at another statusline. `--no-settings` removes the scripts only.
 
 </details>
 
@@ -229,7 +229,7 @@ own context bar, model, and effort.
 ![Three agent rows, each with its own context bar, model and effort: one holds at 34%, one climbs into red, one starts late and stays green.](docs/assets/loop-agents.gif)
 
 On a narrow panel, the effort column drops first and the model column second.
-Requires Claude Code v2.1.205 or later.
+Drawn by the `subagent-rows` plugin, which the installer adds. Requires Claude Code v2.1.326 or later.
 
 ### The Fable window
 
@@ -260,6 +260,7 @@ folder and branch names are cut to fit; the counts keep their room.
 
 ## Requirements
 
+- Claude Code v2.1.326 or later for the agent panel (the `subagent-rows` plugin)
 - `bash`
 - [`jq`](https://jqlang.github.io/jq/) — parses the statusline JSON from stdin
 - `curl` — only for refreshing the Fable weekly quota
@@ -272,9 +273,9 @@ Fable window comes from that payload. For the Fable quota the script reads the
 CLI's cached copy in `~/.claude.json`. When that copy is stale, it calls
 `/api/oauth/usage` in the background, at most every ten minutes.
 
-The agent panel works the same way: Claude Code sends the visible subagent
-rows to `subagent-statusline.sh` as one JSON object, and the script answers
-with one replacement row per agent.
+The agent panel works differently: the `subagent-rows` plugin is a Claude Code
+mod that hooks each row of the agent list, reads every running agent, and
+draws all the rows' bodies on one grid.
 
 The main line uses the model's display name from the payload. The panel
 receives a model id and derives the short name from it. Effort also comes from

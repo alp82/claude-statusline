@@ -245,7 +245,8 @@ if (( UNINSTALL )); then
       rm -f "$t"
       ok "removed $t ${DIM}(backup: $t.bak)${RESET}"
       changed=1
-    else
+    elif [[ $t == "$TARGET" ]]; then
+      # the old agent-rows script is a leftover, so its absence is not news
       step "no script at $t"
     fi
   done
@@ -283,11 +284,11 @@ if (( UNINSTALL )); then
     fi
   fi
 
-  # The subagentStatusLine entry ships with the same install, so it goes the
-  # same way — but only when it still points at our script.
+  # An older install wrote a subagentStatusLine entry, which Claude Code no
+  # longer runs. It goes too — but only when it still points at our script.
   if (( PATCH_SETTINGS )) && [[ -f $SETTINGS ]]; then
     sub_current=$(jq -r '.subagentStatusLine.command // ""' "$SETTINGS" 2>/dev/null) || sub_current=''
-    if [[ -n $sub_current && $sub_current == "$SUB_CMD" ]]; then
+    if [[ -n $sub_current ]] && is_our_sub "$sub_current"; then
       [[ -f $SETTINGS.bak ]] || cp -p "$SETTINGS" "$SETTINGS.bak"
       write_settings 'del(.subagentStatusLine)'
       ok "unwired subagentStatusLine from $SETTINGS"
@@ -296,6 +297,39 @@ if (( UNINSTALL )); then
       warn "$SETTINGS points subagentStatusLine at something else — leaving it alone:"
       warn "  $sub_current"
     fi
+  fi
+
+  # The agent rows plugin and the marketplace it came from. Removing them
+  # rewrites settings.json, so --no-settings, or a settings.json left alone
+  # above because it is not a JSON object, leaves them too.
+  if (( PATCH_SETTINGS )); then
+    if [[ -f $SETTINGS ]] && ! jq -e 'type == "object" or type == "null"' "$SETTINGS" >/dev/null 2>&1; then
+      warn "leaving the agent rows plugin alone too. Once $SETTINGS is fixed, run:"
+      plugin_uninstall_hint
+    elif ! has_claude; then
+      warn "claude is not on PATH — if the agent rows plugin is installed, remove it yourself:"
+      plugin_uninstall_hint
+    else
+      if has_plugin; then
+        if claude_cli plugin uninstall "$PLUGIN" >/dev/null; then
+          ok "uninstalled the $PLUGIN plugin"
+          changed=1
+        else
+          warn "could not uninstall $PLUGIN — run: $(cli_env)claude plugin uninstall $PLUGIN"
+        fi
+      fi
+      if has_marketplace; then
+        if claude_cli plugin marketplace remove "$MARKETPLACE" >/dev/null; then
+          ok "removed the $MARKETPLACE marketplace"
+          changed=1
+        else
+          warn "could not remove $MARKETPLACE — run: $(cli_env)claude plugin marketplace remove $MARKETPLACE"
+        fi
+      fi
+    fi
+  else
+    printf '\n%sThe agent rows plugin is left as it is (--no-settings). To remove it, run:%s\n' "$BOLD" "$RESET"
+    plugin_uninstall_hint
   fi
 
   # The only state the statusline creates on its own: the throttled Fable-usage

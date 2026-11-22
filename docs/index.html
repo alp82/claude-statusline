@@ -181,7 +181,7 @@ a { color:inherit; }
 .overshoot { box-shadow:0 0 .16em currentColor; }
 
 /* ================= the agent panel =================
-   subagent-statusline.sh draws one row per running agent. A row reuses the
+   the subagent-rows plugin draws one row per running agent. A row reuses the
    line's own pieces: the plain bar and the pct/tok columns. */
 .agents { display:grid; row-gap:.85em; }
 .agents .arow { gap:.6em; }
@@ -526,13 +526,13 @@ noscript img { display:block; width:100%; height:auto; }
           <div class="ib paste" data-copy-surface>
             <div class="ib-head">
               <span class="ib-lbl">The prompt for Claude Code</span>
-              <button class="btn" data-copy="Install or update the statusline from https://github.com/{{ nwo }} for me.&#10;Run: curl -fsSL {{ pages }}/install.sh | {{ cmd_install }}&#10;Then check that bash, jq and curl are present, confirm ~/.claude/settings.json&#10;points statusLine at ~/.claude/statusline.sh and subagentStatusLine at&#10;~/.claude/subagent-statusline.sh, and tell me what to do next."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy the prompt</button>
+              <button class="btn" data-copy="Install or update the statusline from https://github.com/{{ nwo }} for me.&#10;Run: curl -fsSL {{ pages }}/install.sh | {{ cmd_install }}&#10;Then check that bash, jq and curl are present, confirm ~/.claude/settings.json&#10;points statusLine at ~/.claude/statusline.sh, confirm that claude plugin list&#10;shows subagent-rows@claude-statusline, and tell me what to do next."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy the prompt</button>
             </div>
             <pre><span class="p">&gt;</span> Install or update the statusline from https://github.com/{{ nwo }} for me.
   Run: curl -fsSL {{ pages }}/install.sh | {{ cmd_install }}
   Then check that bash, jq and curl are present, confirm ~/.claude/settings.json
-  points statusLine at ~/.claude/statusline.sh and subagentStatusLine at
-  ~/.claude/subagent-statusline.sh, and tell me what to do next.</pre>
+  points statusLine at ~/.claude/statusline.sh, confirm that claude plugin list
+  shows subagent-rows@claude-statusline, and tell me what to do next.</pre>
           </div>
           <div class="after">
             <span>Paste it into Claude Code and press return. The same prompt installs it,
@@ -652,20 +652,20 @@ noscript img { display:block; width:100%; height:auto; }
           <div class="tabpanel on" id="p-add" role="tabpanel" aria-labelledby="t-add">
           <p class="intro">One prompt does both. Paste it into Claude Code the first time to
             install the statusline, and paste the same prompt again any time you want the latest
-            version. Claude installs or replaces the scripts, updates the settings, and checks
+            version. Claude installs or replaces the script and the plugin, updates the settings, and checks
             the result.</p>
           <div class="install">
 
             <div class="ib">
               <div class="ib-head">
                 <span class="ib-lbl"><b>01</b>Paste this into Claude Code</span>
-                <button class="btn" data-copy="Install or update the statusline from https://github.com/{{ nwo }} for me.&#10;Run: curl -fsSL {{ pages }}/install.sh | {{ cmd_install }}&#10;Then check that bash, jq and curl are present, confirm ~/.claude/settings.json&#10;points statusLine at ~/.claude/statusline.sh and subagentStatusLine at&#10;~/.claude/subagent-statusline.sh, and tell me what to do next."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy</button>
+                <button class="btn" data-copy="Install or update the statusline from https://github.com/{{ nwo }} for me.&#10;Run: curl -fsSL {{ pages }}/install.sh | {{ cmd_install }}&#10;Then check that bash, jq and curl are present, confirm ~/.claude/settings.json&#10;points statusLine at ~/.claude/statusline.sh, confirm that claude plugin list&#10;shows subagent-rows@claude-statusline, and tell me what to do next."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy</button>
               </div>
               <pre><span class="p">&gt;</span> Install or update the statusline from https://github.com/{{ nwo }} for me.
   Run: curl -fsSL {{ pages }}/install.sh | {{ cmd_install }}
   Then check that bash, jq and curl are present, confirm ~/.claude/settings.json
-  points statusLine at ~/.claude/statusline.sh and subagentStatusLine at
-  ~/.claude/subagent-statusline.sh, and tell me what to do next.</pre>
+  points statusLine at ~/.claude/statusline.sh, confirm that claude plugin list
+  shows subagent-rows@claude-statusline, and tell me what to do next.</pre>
               <div class="note">Claude reads the installer before it runs it and tells you what
                 changed.</div>
             </div>
@@ -677,60 +677,58 @@ noscript img { display:block; width:100%; height:auto; }
               </div>
               <pre>$ curl -fsSL {{ pages }}/install.sh | {{ cmd_install }}</pre>
               <div class="note">The same script without the agent, and the same either way: it
-                puts <code>statusline.sh</code> and <code>subagent-statusline.sh</code> into
-                <code>~/.claude/</code> and points <code>settings.json</code> at them, with a backup
-                of anything it replaces. Run it again whenever you want the latest version. <code>--no-settings</code> installs the scripts only.
+                puts <code>statusline.sh</code> into <code>~/.claude/</code>, points
+                <code>settings.json</code> at it and installs the <code>subagent-rows</code> plugin,
+                with a backup of anything it replaces. Run it again whenever you want the latest version. <code>--no-settings</code> installs the script only and prints the rest.
                 <code>--help</code> lists all options.</div>
             </div>
 
             <div class="ib">
               <div class="ib-head">
                 <span class="ib-lbl"><b>03</b>Or install it by hand</span>
-                <button class="btn" data-copy="curl -fsSL https://raw.githubusercontent.com/{{ nwo }}/{{ ref }}/statusline.sh -o ~/.claude/statusline.sh&#10;curl -fsSL https://raw.githubusercontent.com/{{ nwo }}/{{ ref }}/subagent-statusline.sh -o ~/.claude/subagent-statusline.sh&#10;chmod +x ~/.claude/statusline.sh ~/.claude/subagent-statusline.sh"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy</button>
+                <button class="btn" data-copy="curl -fsSL https://raw.githubusercontent.com/{{ nwo }}/{{ ref }}/statusline.sh -o ~/.claude/statusline.sh&#10;chmod +x ~/.claude/statusline.sh&#10;claude plugin marketplace add {{ nwo }}&#10;claude plugin install subagent-rows@claude-statusline"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy</button>
               </div>
               <pre>$ curl -fsSL https://raw.githubusercontent.com/{{ nwo }}/{{ ref }}/statusline.sh \
     -o ~/.claude/statusline.sh
-$ curl -fsSL https://raw.githubusercontent.com/{{ nwo }}/{{ ref }}/subagent-statusline.sh \
-    -o ~/.claude/subagent-statusline.sh
-$ chmod +x ~/.claude/statusline.sh ~/.claude/subagent-statusline.sh</pre>
-              <div class="note">Two files, nothing else. Then add the settings below yourself.</div>
+$ chmod +x ~/.claude/statusline.sh
+$ claude plugin marketplace add {{ nwo }}
+$ claude plugin install subagent-rows@claude-statusline</pre>
+              <div class="note">One file and one plugin. Then add the settings below yourself.</div>
             </div>
 
             <div class="ib">
               <div class="ib-head">
                 <span class="ib-lbl"><b>04</b>Point Claude Code at it</span>
-                <button class="btn" data-copy='{ "statusLine": { "type": "command", "command": "~/.claude/statusline.sh" }, "subagentStatusLine": { "type": "command", "command": "~/.claude/subagent-statusline.sh" } }'><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy</button>
+                <button class="btn" data-copy='{ "statusLine": { "type": "command", "command": "~/.claude/statusline.sh" } }'><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy</button>
               </div>
               <pre><span class="c">// ~/.claude/settings.json</span>
 { <span class="k">"statusLine"</span>: { <span class="k">"type"</span>: <span class="s">"command"</span>,
-    <span class="k">"command"</span>: <span class="s">"~/.claude/statusline.sh"</span> },
-  <span class="k">"subagentStatusLine"</span>: { <span class="k">"type"</span>: <span class="s">"command"</span>,
-    <span class="k">"command"</span>: <span class="s">"~/.claude/subagent-statusline.sh"</span> } }</pre>
+    <span class="k">"command"</span>: <span class="s">"~/.claude/statusline.sh"</span> } }</pre>
               <div class="note">The prompt and the installer write this for you. You need it only
                 after a manual install or <code>--no-settings</code>.</div>
             </div>
 
           </div>
-          <p class="req">Needs <b>bash</b>, <b>jq</b> and <b>curl</b>. Claude Code sends the data
+          <p class="req">Needs <b>bash</b>, <b>jq</b> and <b>curl</b>, and Claude Code v2.1.326 or later for the agent panel. Claude Code sends the data
             on stdin. The script fetches only the Fable number itself, in the background, at most
             every ten minutes.</p>
           </div><!-- /p-add -->
 
           <div class="tabpanel" id="p-rm" role="tabpanel" aria-labelledby="t-rm">
-          <p class="intro">The same prompt in reverse. It removes both scripts and their
-            settings entries, and leaves a backup of each.</p>
+          <p class="intro">The same prompt in reverse. It removes the script, its settings
+            entries and the plugin, and leaves a backup of each file.</p>
           <div class="install">
 
             <div class="ib">
               <div class="ib-head">
                 <span class="ib-lbl"><b>01</b>Paste this into Claude Code</span>
-                <button class="btn" data-copy="Uninstall the statusline from https://github.com/{{ nwo }} for me.&#10;Run: curl -fsSL {{ pages }}/install.sh | {{ cmd_uninstall }}&#10;Then confirm ~/.claude/statusline.sh and ~/.claude/subagent-statusline.sh are gone,&#10;confirm ~/.claude/settings.json has no statusLine or subagentStatusLine entry,&#10;and show me which .bak files it left behind."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy</button>
+                <button class="btn" data-copy="Uninstall the statusline from https://github.com/{{ nwo }} for me.&#10;Run: curl -fsSL {{ pages }}/install.sh | {{ cmd_uninstall }}&#10;Then confirm ~/.claude/statusline.sh is gone, confirm ~/.claude/settings.json&#10;has no statusLine or subagentStatusLine entry, confirm that claude plugin list&#10;no longer shows subagent-rows, and show me which .bak files it left behind."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy</button>
               </div>
               <pre><span class="p">&gt;</span> Uninstall the statusline from https://github.com/{{ nwo }} for me.
   Run: curl -fsSL {{ pages }}/install.sh | {{ cmd_uninstall }}
-  Then confirm ~/.claude/statusline.sh and ~/.claude/subagent-statusline.sh are gone,
-  confirm ~/.claude/settings.json has no statusLine or subagentStatusLine entry,
-  and show me which .bak files it left behind.</pre>
+  Then confirm ~/.claude/statusline.sh is gone, confirm ~/.claude/settings.json
+  has no statusLine or subagentStatusLine entry, confirm that claude plugin list
+  no longer shows subagent-rows, and show me which .bak files it left behind.</pre>
               <div class="note">Claude runs it and tells you where the backups are.</div>
             </div>
 
@@ -740,9 +738,9 @@ $ chmod +x ~/.claude/statusline.sh ~/.claude/subagent-statusline.sh</pre>
                 <button class="btn" data-copy="curl -fsSL {{ pages }}/install.sh | {{ cmd_uninstall }}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h7a1 1 0 0 1 1 1v1h-1V3H4v8h1v1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M7 5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1v7h6V6H7Z"/></svg>copy</button>
               </div>
               <pre>$ curl -fsSL {{ pages }}/install.sh | {{ cmd_uninstall }}</pre>
-              <div class="note">Removes both scripts from <code>~/.claude/</code>, the
+              <div class="note">Removes <code>statusline.sh</code> (and an older install's <code>subagent-statusline.sh</code>) from <code>~/.claude/</code>, the
                 <code>statusLine</code> and <code>subagentStatusLine</code> entries in
-                <code>settings.json</code>, and the cached usage numbers. It backs up the scripts
+                <code>settings.json</code>, the <code>subagent-rows</code> plugin and its marketplace, and the cached usage numbers. It backs up the scripts
                 and <code>settings.json</code> as <code>.bak</code> first. It changes nothing
                 else, and it leaves an entry alone if it points at another statusline.
                 <code>--no-settings</code> removes the scripts only.</div>
@@ -944,9 +942,9 @@ function statusline(o = {}) {
     + `<div class="sl">${join(rest)}</div></div>`;
 }
 
-/* the agent panel, as subagent-statusline.sh draws it: one row per agent,
+/* the agent panel, as the subagent-rows plugin draws it: one row per agent,
    name · its own context bar · pct · tokens · model · effort · description.
-   The script measures each column across the whole payload and pads every row
+   The plugin measures each column across every row and pads every row
    to it; here the same widths come out of the story data and are spent as a
    min-width, so the description starts in one column down the panel. */
 function agentPanel(o = {}) {

@@ -42,6 +42,13 @@ test('narrow panel drops effort first, then model, for every row', async () => {
   }
 })
 
+test('control characters in a name or description become single spaces', async () => {
+  const a = strip(drawRows([agent({ name: 'a\tb', description: 'x\ny\r\u0001z\u007fw' })], 80).get('a')!)
+  expect(/[\x00-\x1f\x7f]/.test(a)).toBe(false)
+  expect(a.startsWith('a b ')).toBe(true)
+  expect(a.endsWith(' · x y  z w')).toBe(true)
+})
+
 test('an agent without a name is labelled by its type', async () => {
   const a = strip(drawRows([agent({ name: undefined, type: 'Explore' })], 80).get('a')!)
   expect(a.startsWith('Explore ')).toBe(true)

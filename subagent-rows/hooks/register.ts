@@ -51,6 +51,8 @@ function visCut(s: string, max: number) {
 
 const pad = (s: string, w: number) => s + ' '.repeat(Math.max(0, w - visLen(s)))
 const padL = (s: string, w: number) => ' '.repeat(Math.max(0, w - s.length)) + s
+// a newline or tab in agent text would split the row or break its width
+const oneLine = (s: string) => s.replace(/[\x00-\x1f\x7f]/g, ' ')
 const fmtTokens = (t: number) => `${Math.min(999, Math.max(1, Math.floor((t + 500) / 1000)))}k`
 
 // claude-opus-5[1m] -> Opus 5 1M, claude-sonnet-4-6-2026… -> Sonnet 4.6, claude-3-7-sonnet-… -> Sonnet 3.7,
@@ -76,13 +78,13 @@ export function drawRows(agents: AgentInfo[], columns: number): Map<string, stri
     return {
       id: a.id,
       // name is set only for an agent SendMessage can address; type always is
-      name: a.name || a.type || 'agent',
+      name: oneLine(a.name || a.type || 'agent'),
       pct: cws > 0 ? Math.floor((tokens * 100) / cws) : -1,
       // not started really is 0, so no round-up to 1k without a window size
       tok: cws > 0 || tokens > 0 ? fmtTokens(tokens) : '0k',
       mdl: a.model ? shortModel(a.model) : '',
       eff: typeof a.effort === 'string' ? EFFORT[a.effort] ?? '' : '',
-      desc: a.description ?? '',
+      desc: oneLine(a.description ?? ''),
     }
   })
   const namew = Math.max(0, ...rows.map(r => visLen(r.name)))

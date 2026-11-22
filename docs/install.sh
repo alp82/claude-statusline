@@ -188,6 +188,50 @@ is_ours() {
     || { [[ $TARGET == "$HOME/.claude/statusline.sh" ]] && [[ $1 == "~/.claude/statusline.sh" ]]; }
 }
 
+# The same question for the subagentStatusLine an older install (or the old
+# README recipe, in the tilde form) wrote.
+is_our_sub() {
+  [[ $1 == "$SUB_CMD" ]] \
+    || { [[ $SUB_TARGET == "$HOME/.claude/subagent-statusline.sh" ]] && [[ $1 == "~/.claude/subagent-statusline.sh" ]]; }
+}
+
+# The claude CLI, aimed at the same config dir as everything else. Only a
+# --dir away from the default sets CLAUDE_CONFIG_DIR, because setting it at
+# all changes where Claude Code keeps its state; the default unsets an
+# inherited one for the same reason. </dev/null: under `curl | bash` stdin
+# is this script, and claude must not read it.
+claude_cli() {
+  if [[ ${CONFIG_DIR%/} == "$HOME/.claude" ]]; then
+    env -u CLAUDE_CONFIG_DIR claude "$@" </dev/null
+  else
+    CLAUDE_CONFIG_DIR="$CONFIG_DIR" claude "$@" </dev/null
+  fi
+}
+# The same prefix for a claude command printed for the user to run.
+cli_env() {
+  [[ ${CONFIG_DIR%/} == "$HOME/.claude" ]] || printf 'CLAUDE_CONFIG_DIR=%s ' "$(shellquote "$CONFIG_DIR")"
+}
+has_claude()      { command -v claude >/dev/null 2>&1; }
+has_plugin()      { claude_cli plugin list --json 2>/dev/null | jq -e --arg p "$PLUGIN" 'any(.[]; .id == $p)' >/dev/null 2>&1; }
+has_marketplace() { claude_cli plugin marketplace list --json 2>/dev/null | jq -e --arg m "$MARKETPLACE" 'any(.[]; .name == $m)' >/dev/null 2>&1; }
+# Where the claude-statusline marketplace was added from, as owner/repo#ref
+# (one added without a ref follows the default branch, main); empty when it
+# is not added. Callers write `x=$(marketplace_src) || x=''`.
+marketplace_src() {
+  claude_cli plugin marketplace list --json 2>/dev/null \
+    | jq -r --arg m "$MARKETPLACE" 'first(.[] | select(.name == $m) | "\(.repo // "")#\(.ref // "main")") // empty' 2>/dev/null
+}
+
+# The commands that install, or uninstall, the plugin by hand.
+plugin_hint() {
+  local pre; pre=$(cli_env)
+  printf '  %sclaude plugin marketplace add %s\n  %sclaude plugin install %s\n' "$pre" "$MARKET_SRC" "$pre" "$PLUGIN"
+}
+plugin_uninstall_hint() {
+  local pre; pre=$(cli_env)
+  printf '  %sclaude plugin uninstall %s\n  %sclaude plugin marketplace remove %s\n' "$pre" "$PLUGIN" "$pre" "$MARKETPLACE"
+}
+
 # --- uninstall ---------------------------------------------------------------
 if (( UNINSTALL )); then
   changed=0

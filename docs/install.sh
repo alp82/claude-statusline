@@ -195,6 +195,16 @@ is_our_sub() {
     || { [[ $SUB_TARGET == "$HOME/.claude/subagent-statusline.sh" ]] && [[ $1 == "~/.claude/subagent-statusline.sh" ]]; }
 }
 
+# claude plugin commands rewrite settings.json too. This copies it to .bak once
+# per run, before the first write; a .bak left by an earlier run does not count.
+backed_up=0
+backup_settings() {
+  if (( ! backed_up )) && [[ -f $SETTINGS ]]; then
+    cp -p "$SETTINGS" "$SETTINGS.bak"
+    backed_up=1
+  fi
+}
+
 # The claude CLI, aimed at the same config dir as everything else. Only a
 # --dir away from the default sets CLAUDE_CONFIG_DIR, because setting it at
 # all changes where Claude Code keeps its state; the default unsets an
@@ -277,7 +287,7 @@ if (( UNINSTALL )); then
       warn "$SETTINGS points statusLine at something else — leaving it alone:"
       warn "  $current"
     else
-      cp -p "$SETTINGS" "$SETTINGS.bak"
+      backup_settings
       write_settings 'del(.statusLine)'
       ok "unwired $SETTINGS ${DIM}(backup: $SETTINGS.bak)${RESET}"
       changed=1
@@ -289,7 +299,7 @@ if (( UNINSTALL )); then
   if (( PATCH_SETTINGS )) && [[ -f $SETTINGS ]]; then
     sub_current=$(jq -r '.subagentStatusLine.command // ""' "$SETTINGS" 2>/dev/null) || sub_current=''
     if [[ -n $sub_current ]] && is_our_sub "$sub_current"; then
-      [[ -f $SETTINGS.bak ]] || cp -p "$SETTINGS" "$SETTINGS.bak"
+      backup_settings
       write_settings 'del(.subagentStatusLine)'
       ok "unwired subagentStatusLine from $SETTINGS"
       changed=1
@@ -311,6 +321,7 @@ if (( UNINSTALL )); then
       plugin_uninstall_hint
     else
       if has_plugin; then
+        backup_settings
         if claude_cli plugin uninstall "$PLUGIN" >/dev/null; then
           ok "uninstalled the $PLUGIN plugin"
           changed=1
@@ -319,6 +330,7 @@ if (( UNINSTALL )); then
         fi
       fi
       if has_marketplace; then
+        backup_settings
         if claude_cli plugin marketplace remove "$MARKETPLACE" >/dev/null; then
           ok "removed the $MARKETPLACE marketplace"
           changed=1
@@ -411,6 +423,7 @@ if (( PATCH_SETTINGS )); then
   created=1
   if [[ ! -f $SETTINGS ]]; then
     had_settings=0
+    backed_up=1 # a file this run creates has no original to keep
     # A dangling symlink lands here with an unreachable target, so this can fail.
     (umask 077; printf '{}\n' > "$SETTINGS") 2>/dev/null || created=0
   fi
@@ -459,7 +472,7 @@ if (( PATCH_SETTINGS )); then
     else
       note=''
       if (( had_settings )); then
-        cp -p "$SETTINGS" "$SETTINGS.bak"
+        backup_settings
         note=" ${DIM}(backup: $SETTINGS.bak)${RESET}"
         if [[ -n $current ]] && ! is_ours "$current"; then
           step "replacing existing statusLine command ($current)"
@@ -512,7 +525,7 @@ else
       else
         warn "could not update $PLUGIN; the installed copy is unchanged. Run: $(cli_env)claude plugin update $PLUGIN"
       fi
-    elif claude_cli plugin install "$PLUGIN" >/dev/null; then
+    elif backup_settings; claude_cli plugin install "$PLUGIN" >/dev/null; then
       ok "installed the $PLUGIN plugin"
     else
       warn "the agent rows plugin did not install. Run:"
@@ -524,6 +537,7 @@ else
     moved=1
     if [[ -n $current_src ]]; then
       step "moving marketplace $MARKETPLACE from $current_src to $MARKET_SRC"
+      backup_settings
       if ! claude_cli plugin marketplace remove "$MARKETPLACE" >/dev/null; then
         if has_plugin; then
           warn "could not remove the $MARKETPLACE marketplace; the installed plugin is unchanged."
@@ -536,6 +550,7 @@ else
     fi
     if (( moved )); then
       step "adding marketplace $MARKET_SRC"
+      backup_settings
       if claude_cli plugin marketplace add "$MARKET_SRC" >/dev/null \
           && claude_cli plugin install "$PLUGIN" >/dev/null; then
         ok "installed the $PLUGIN plugin"

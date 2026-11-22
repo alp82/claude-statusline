@@ -226,10 +226,13 @@ has_plugin()      { claude_cli plugin list --json 2>/dev/null | jq -e --arg p "$
 has_marketplace() { claude_cli plugin marketplace list --json 2>/dev/null | jq -e --arg m "$MARKETPLACE" 'any(.[]; .name == $m)' >/dev/null 2>&1; }
 # Where the claude-statusline marketplace was added from, as owner/repo#ref
 # (one added without a ref follows the default branch, main); empty when it
-# is not added. Callers write `x=$(marketplace_src) || x=''`.
+# is not added. A source that is not a GitHub repo (a directory, a git url)
+# comes back as its path, its url, or its source type, which never equals
+# owner/repo#ref, so the caller replaces it. Callers write
+# `x=$(marketplace_src) || x=''`.
 marketplace_src() {
   claude_cli plugin marketplace list --json 2>/dev/null \
-    | jq -r --arg m "$MARKETPLACE" 'first(.[] | select(.name == $m) | "\(.repo // "")#\(.ref // "main")") // empty' 2>/dev/null
+    | jq -r --arg m "$MARKETPLACE" 'first(.[] | select(.name == $m) | if .repo then "\(.repo)#\(.ref // "main")" else (.path // .url // .source) end) // empty' 2>/dev/null
 }
 
 # The commands that install, or uninstall, the plugin by hand.

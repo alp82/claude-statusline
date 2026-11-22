@@ -4,6 +4,23 @@ Notable changes, newest first. Dates instead of versions: the install one-liner
 always serves `main`, so a date names a state of `main` better than a version
 number would.
 
+## 2026-11-22
+
+### Changed
+
+- The agent panel rows come from a Claude Code mod, the `subagent-rows`
+  plugin, because Claude Code no longer runs the `subagentStatusLine`
+  setting. The installer installs or updates it with `claude plugin`,
+  pinned to the same `--ref` as `statusline.sh`, and prints the commands
+  when `claude` is not on the PATH. It removes an older install's
+  `subagentStatusLine` entry and backs up `subagent-statusline.sh` as
+  `.bak`. `--uninstall` removes the plugin and its marketplace too. Needs
+  Claude Code v2.1.326 or later.
+
+### Removed
+
+- `subagent-statusline.sh`.
+
 ## 2026-11-05
 
 ### Fixed

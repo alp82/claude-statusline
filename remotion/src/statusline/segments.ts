@@ -255,7 +255,7 @@ export const buildSegments = (state: StatuslineState): Segment[] => {
 };
 
 /**
- * One agent-panel row, as subagent-statusline.sh draws it: name in the
+ * One agent-panel row, as the subagent-rows plugin draws it: name in the
  * directory blue, the agent's own context bar and percentage on ctx
  * thresholds, the token count, then ` · ` and the description in dim. The
  * name is padded to a fixed column so the rows' bars align, and the tokens
@@ -271,7 +271,7 @@ export const buildAgentRow = (row: AgentRow, widths: AgentColumns): Part[] => {
     {kind: 'text', text: ` ${pctField(pct)}`, color},
     {kind: 'text', text: ` ${tokensField((pct / 100) * 1000000)}`, color: colors.dim},
   ];
-  // The script prints the model and the effort between the meter and the
+  // The plugin prints the model and the effort between the meter and the
   // description, each behind its own dot and padded to its column, so a row
   // missing one still starts its description where the others do.
   for (const [field, cells] of [
@@ -292,8 +292,8 @@ export const buildAgentRow = (row: AgentRow, widths: AgentColumns): Part[] => {
 };
 
 /**
- * The panel's column widths, measured across every row — the script does the
- * same in one pass over the payload before it draws anything.
+ * The panel's column widths, measured across every row — the plugin does the
+ * same across every row before it draws any.
  */
 export type AgentColumns = {name: number; model: number; effort: number};
 

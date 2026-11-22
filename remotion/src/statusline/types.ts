@@ -40,7 +40,7 @@ export type GitState = {
   deletions?: number;
 };
 
-/** One row of the agent panel, as subagent-statusline.sh draws it. */
+/** One row of the agent panel, as the subagent-rows plugin draws it. */
 export type AgentRow = {
   name: string;
   /** The agent's own context usage, 0–100. Tokens are derived from it. */

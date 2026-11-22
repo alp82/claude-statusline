@@ -1,0 +1,7 @@
+{
+  "name": "subagent-rows",
+  "version": "0.1.0",
+  "description": "Agent list rows with a per-agent context bar, model and effort (replaces subagentStatusLine)",
+  "author": { "name": "alp82" },
+  "license": "MIT"
+}

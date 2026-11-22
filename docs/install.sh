@@ -7,10 +7,11 @@
 # one-liner above short. It is the only copy; the raw.githubusercontent URL
 # (…/main/docs/install.sh) serves the same file.
 #
-# Drops statusline.sh and subagent-statusline.sh into your Claude Code config
-# dir and points settings.json at them (statusLine and subagentStatusLine).
-# Idempotent: re-running upgrades in place. Anything it overwrites or removes —
-# including on --uninstall — is backed up next to the original first.
+# Drops statusline.sh into your Claude Code config dir, points settings.json's
+# statusLine at it, and installs the subagent-rows plugin (the agent panel
+# rows) with the claude CLI. Idempotent: re-running upgrades in place. Any
+# file it overwrites or removes — including on --uninstall — is backed up
+# next to the original first.
 
 set -euo pipefail
 
@@ -23,9 +24,8 @@ UNINSTALL=0
 # All are cleaned up by one trap, so uninstall (which never fetches) can share
 # the settings writer with install without tripping over an unset $tmp.
 tmp=''
-sub_tmp=''
 settings_tmp=''
-trap 'rm -f "$tmp" "$sub_tmp" "$settings_tmp"' EXIT
+trap 'rm -f "$tmp" "$settings_tmp"' EXIT
 
 if [[ -t 1 ]]; then
   BOLD=$'\033[1m'; DIM=$'\033[38;2;138;138;138m'; CLAY=$'\033[38;2;217;119;87m'
@@ -52,13 +52,16 @@ Installs the statusline, or updates it in place if you already have it.
 
 Options:
   --dir <path>     Claude Code config dir (default: \$CLAUDE_CONFIG_DIR or ~/.claude)
-  --ref <ref>      branch or tag to install from (default: $REF)
-  --no-settings    install the scripts only; print the settings.json snippet
-                   instead of writing it. With --uninstall, remove the scripts
-                   but leave settings.json alone.
-  --uninstall      remove both scripts and drop the statusLine and
-                   subagentStatusLine entries from settings.json, backing
-                   everything up first
+  --ref <ref>      branch or tag to install from (default: $REF); the
+                   plugin is pinned to it too
+  --no-settings    install statusline.sh only; print the settings.json
+                   snippet and the plugin commands instead of running them.
+                   With --uninstall, remove the scripts but leave
+                   settings.json and the plugin alone.
+  --uninstall      remove the scripts, drop the statusLine and
+                   subagentStatusLine entries from settings.json, and
+                   uninstall the subagent-rows plugin and its marketplace,
+                   backing files up first
   -h, --help       this help
 EOF
 }
@@ -108,10 +111,17 @@ for dep in "${deps[@]}"; do
 done
 
 TARGET="$CONFIG_DIR/statusline.sh"
+# Only cleaned up now: an older install left this script and a
+# subagentStatusLine entry behind, which Claude Code no longer runs.
 SUB_TARGET="$CONFIG_DIR/subagent-statusline.sh"
 SETTINGS="$CONFIG_DIR/settings.json"
 SOURCE_URL="https://raw.githubusercontent.com/$REPO/$REF/statusline.sh"
-SUB_SOURCE_URL="https://raw.githubusercontent.com/$REPO/$REF/subagent-statusline.sh"
+# The agent panel rows are the subagent-rows plugin. Its marketplace is this
+# repo (.claude-plugin/marketplace.json names it claude-statusline), and
+# #ref pins it, and so the plugin, to the same ref as statusline.sh.
+MARKETPLACE="claude-statusline"
+PLUGIN="subagent-rows@$MARKETPLACE"
+MARKET_SRC="$REPO#$REF"
 
 # A symlinked settings.json means a dotfile manager (stow/chezmoi/yadm) owns it.
 # Unlike $TARGET below, follow this one: it points at the user's own config, so
@@ -144,9 +154,8 @@ SUB_CMD=$(shellquote "$SUB_TARGET")
 REFRESH=5
 
 settings_snippet() {
-  jq -n --arg cmd "$CMD" --arg sub "$SUB_CMD" --argjson every "$REFRESH" '{
-    statusLine: {type: "command", command: $cmd, refreshInterval: $every},
-    subagentStatusLine: {type: "command", command: $sub}
+  jq -n --arg cmd "$CMD" --argjson every "$REFRESH" '{
+    statusLine: {type: "command", command: $cmd, refreshInterval: $every}
   }'
 }
 
@@ -278,11 +287,8 @@ fetch() {
 }
 
 tmp=$(mktemp)
-sub_tmp=$(mktemp)
 step "fetching statusline.sh @ $REF"
 fetch "$SOURCE_URL" "$tmp"
-step "fetching subagent-statusline.sh @ $REF"
-fetch "$SUB_SOURCE_URL" "$sub_tmp"
 
 # --- install ----------------------------------------------------------------
 # 0700: the config dir holds settings.json, which routinely carries API keys.
